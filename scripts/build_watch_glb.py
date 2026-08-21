@@ -5,8 +5,11 @@ Node names are load-bearing — the app looks parts up by these exact names:
   Case material swap (shared "CaseMetal" material): Case, Bezel, Crown,
     Lug_0..3, CaseBack
   Strap material swap (separate "StrapMetal" material, independently
-    swappable between the case-matched metal and a leather look):
-    StrapTop, StrapBottom
+    swappable between the case-matched metal and a leather look): each
+    bracelet link and clasp half is its own top-level node so the assembly
+    scene can fan them apart individually — StrapTop_L0..L10, ClaspTop,
+    StrapBottom_L0..L10, ClaspBottom (app code matches these by the
+    "StrapTop"/"StrapBottom"/"Clasp" name prefix, not an exact list)
   Exploded movement layers (each its own top-level node): Dial, Tourbillon,
     Mainplate, Barrel, Baseplate, Weight
 
@@ -75,19 +78,26 @@ for i, (x, y, rz) in enumerate(lug_positions):
     add(lug, CASE_METAL, f"Lug_{i}", transform=tf)
 
 
-def build_strap(direction):
-    links = []
-    link_h, link_gap, y = 0.34, 0.05, 1.02
+# Each link (and the clasp) is its own top-level node, geometry centered at
+# the origin with its resting position carried entirely by the node
+# transform — the app reads that transform as the "assembled" rest pose and
+# offsets from it on X/Z to fan the bracelet open during the explode scene.
+def build_strap_links(direction, prefix):
+    link_h, link_gap, y0 = 0.34, 0.05, 1.02
     for i in range(11):
         w = max(0.9 - i * 0.02, 0.55)
         link = trimesh.creation.box(extents=[w, link_h, 0.14])
-        link.apply_translation([0, direction * (y + i * (link_h + link_gap)), -0.02])
-        links.append(link)
-    return trimesh.util.concatenate(links)
+        y = direction * (y0 + i * (link_h + link_gap))
+        add(link, STRAP_METAL, f"{prefix}_L{i}", transform=trimesh.transformations.translation_matrix([0, y, -0.02]))
+
+    clasp = trimesh.creation.box(extents=[0.56, 0.24, 0.06])
+    clasp_y = direction * (y0 + 11 * (link_h + link_gap) + 0.07)
+    clasp_name = "ClaspTop" if direction == 1 else "ClaspBottom"
+    add(clasp, STRAP_METAL, clasp_name, transform=trimesh.transformations.translation_matrix([0, clasp_y, -0.02]))
 
 
-add(build_strap(1), STRAP_METAL, "StrapTop")
-add(build_strap(-1), STRAP_METAL, "StrapBottom")
+build_strap_links(1, "StrapTop")
+build_strap_links(-1, "StrapBottom")
 
 back = trimesh.creation.cylinder(radius=1.0, height=0.04, sections=64)
 add(back, CASE_METAL, "CaseBack", transform=trimesh.transformations.translation_matrix([0, 0, -0.19]))

@@ -21,12 +21,31 @@ export function SceneProvider({ children }) {
   // preset, leather is a fixed appearance) but still faded during explode.
   const strapMaterialsRef = useRef([]);
   const crystalMaterialRef = useRef(null);
+  // Bracelet link + clasp nodes: { name -> { node, rest: {x,y,z} } }. Rest
+  // position is captured at load time so the assembly explode can fan each
+  // one outward on X/Z (relative to its own resting spot) and cleanly
+  // reset it afterward, the same pattern movementRestZRef uses.
+  const strapNodesRef = useRef({});
+  // Thin additive-blended highlight mesh swept across the crystal during
+  // the Macro Zoom dial stage.
+  const crystalGlareRef = useRef(null);
+
+  // 3D presentation box (Gift Atelier unboxing scene): outer group scales
+  // in/out, lid group hinges open/closed.
+  const boxGroupRef = useRef(null);
+  const boxLidRef = useRef(null);
 
   // DOM label elements for the exploded-assembly section, keyed by layer name,
   // and a flag so the per-frame projection loop only runs while that section is in view.
   const assemblyLabelRefs = useRef({});
   const assemblyActiveRef = useRef(false);
   const assemblyExplodeRef = useRef(0);
+
+  // True while the scroll position sits inside a section whose 3D framing
+  // is exactly choreographed (assembly, mechanical heart, macro zoom,
+  // unboxing) — the idle 360° drift in WatchModel pauses during these so it
+  // never rotates the watch off the precise angle those scenes depend on.
+  const precisionFramingRef = useRef(false);
 
   // 0 → 1 intensity for the Mechanical Heart particle swirl, driven by scroll.
   const particleEnergyRef = useRef(0);
@@ -61,9 +80,14 @@ export function SceneProvider({ children }) {
       caseMaterialsRef,
       strapMaterialsRef,
       crystalMaterialRef,
+      strapNodesRef,
+      crystalGlareRef,
+      boxGroupRef,
+      boxLidRef,
       assemblyLabelRefs,
       assemblyActiveRef,
       assemblyExplodeRef,
+      precisionFramingRef,
       particleEnergyRef,
       canvasPainted,
       setCanvasPainted,

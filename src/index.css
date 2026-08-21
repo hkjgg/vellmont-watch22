@@ -532,7 +532,25 @@ p { line-height: 1.75; color: var(--ink-dim); font-size: 1.02rem; }
 .personalize__preview-caption { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-dim); }
 
 /* ============ GIFT ATELIER ============ */
-.gift-atelier { flex-direction: column; text-align: center; gap: 2.5rem; }
+/* Stretched to 220vh + a pinned inner sticky, the same pattern Mechanical
+   Heart uses — a section exactly one viewport tall would give the unboxing
+   ScrollTrigger a zero-length scrub range (start "top top" and end "bottom
+   bottom" would coincide), so the extra scroll room is what actually lets
+   the presentation box open, gsap #dial reflect it, and the section can't
+   be scrolled past instantly. */
+.gift-atelier { display: block; min-height: 220vh; padding: 0; }
+.gift-atelier__sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 2.5rem;
+  padding: 6rem clamp(1.25rem, 6vw, 5rem);
+}
 .gift-atelier__intro h2 { font-size: clamp(2rem, 4.5vw, 3rem); margin: 0.4rem 0 0.75rem; }
 .gift-atelier__intro p { max-width: 34rem; margin: 0 auto; }
 

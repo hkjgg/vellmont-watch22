@@ -6,6 +6,7 @@ import Lighting from "./Lighting";
 import AssemblyLabelSync from "./AssemblyLabelSync";
 import StudioEnvironment from "./StudioEnvironment";
 import PaintSignal from "./PaintSignal";
+import PresentationBox from "./PresentationBox";
 import { useScene } from "../context/SceneContext";
 
 export default function CanvasStage() {
@@ -33,6 +34,7 @@ export default function CanvasStage() {
             color="#000000"
           />
         </Suspense>
+        <PresentationBox />
         <AssemblyLabelSync />
       </Canvas>
     </div>

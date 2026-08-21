@@ -18,6 +18,29 @@ const EXPLODE_OFFSET = {
   Dial: 0.85,
 };
 
+// Bracelet link index, parsed from "StrapTop_L3" -> 3, "ClaspTop" -> 11
+// (the clasp sits one slot past the last link so it fans out furthest).
+function strapNodeIndex(name) {
+  if (name.startsWith("Clasp")) return 11;
+  const m = name.match(/_L(\d+)$/);
+  return m ? parseInt(m[1], 10) : 0;
+}
+
+// Fans every bracelet link and the clasp outward on X/Z (alternating sides,
+// travelling further from the case with each link) alongside the movement
+// explode, then folds the clasp open a little for a "disassembled" read.
+function applyStrapExplode(strapNodesRef, explodePhase) {
+  Object.entries(strapNodesRef.current).forEach(([name, { node, rest }]) => {
+    const i = strapNodeIndex(name);
+    const dirSign = i % 2 === 0 ? 1 : -1;
+    node.position.x = rest.x + dirSign * (0.12 + i * 0.045) * explodePhase;
+    node.position.z = rest.z - (0.05 + i * 0.055) * explodePhase;
+    if (name.startsWith("Clasp")) {
+      node.rotation.z = (name === "ClaspTop" ? 1 : -1) * 0.7 * explodePhase;
+    }
+  });
+}
+
 // Ordered zones the page scrolls through; each names whether that section
 // should read on the light or dark palette. The scrub below smoothly
 // crossfades --bg/--ink/etc. as the viewport center crosses each boundary,
@@ -67,6 +90,7 @@ const AMBIENT_POSE = { rotY: 0, camZ: 7.4, fov: 27, groupY: 0.05 };
 export function useSectionAnimations(contentRef) {
   const {
     watchGroupRef,
+    innerGroupRef,
     cameraRef,
     onReady,
     movementNodesRef,
@@ -74,6 +98,11 @@ export function useSectionAnimations(contentRef) {
     caseMaterialsRef,
     strapMaterialsRef,
     crystalMaterialRef,
+    strapNodesRef,
+    crystalGlareRef,
+    boxGroupRef,
+    boxLidRef,
+    precisionFramingRef,
     assemblyActiveRef,
     assemblyExplodeRef,
     particleEnergyRef,
@@ -94,6 +123,7 @@ export function useSectionAnimations(contentRef) {
         setupMechanicalHeart(group, camera);
         setupMacroZoom(group, camera);
         setupInfoSectionsTransition(group, camera);
+        setupUnboxing(group, camera);
         setupLineupReturn(group, camera);
         setupGenericReveals();
       });
@@ -174,6 +204,7 @@ export function useSectionAnimations(contentRef) {
       scrub: 0.4,
       onToggle: (self) => {
         assemblyActiveRef.current = self.isActive;
+        makePrecisionToggle(precisionFramingRef, innerGroupRef)(self);
       },
       onUpdate: (self) => {
         const p = self.progress;
@@ -193,6 +224,7 @@ export function useSectionAnimations(contentRef) {
           if (!node) return;
           node.position.z = (restZ[name] ?? 0) + offset * explodePhase;
         });
+        applyStrapExplode(strapNodesRef, explodePhase);
 
         const fadeOut = 1 - clamp01(explodePhase / 0.4);
         caseMaterialsRef.current.forEach((mat) => {
@@ -212,6 +244,7 @@ export function useSectionAnimations(contentRef) {
       start: "top top",
       end: "bottom bottom",
       scrub: 0.4,
+      onToggle: makePrecisionToggle(precisionFramingRef, innerGroupRef),
       onUpdate: (self) => {
         const p = self.progress;
         const zoomPhase = clamp01(p / 0.6);
@@ -230,6 +263,7 @@ export function useSectionAnimations(contentRef) {
             if (!node) return;
             node.position.z = (restZ[name] ?? 0) + offset * (1 - reassemble);
           });
+          applyStrapExplode(strapNodesRef, 1 - reassemble);
           caseMaterialsRef.current.forEach((mat) => {
             mat.opacity = reassemble;
           });
@@ -256,6 +290,7 @@ export function useSectionAnimations(contentRef) {
       start: "top top",
       end: "bottom bottom",
       scrub: 0.4,
+      onToggle: makePrecisionToggle(precisionFramingRef, innerGroupRef),
       onUpdate: (self) => {
         // Macro Zoom always shows the fully assembled watch — force that
         // state on every update so a fast scroll/jump into this section
@@ -268,6 +303,7 @@ export function useSectionAnimations(contentRef) {
           const node = nodes[name];
           if (node) node.position.z = restZ[name] ?? 0;
         });
+        applyStrapExplode(strapNodesRef, 0);
         caseMaterialsRef.current.forEach((mat) => {
           mat.opacity = 1;
         });
@@ -295,6 +331,20 @@ export function useSectionAnimations(contentRef) {
           const dist = Math.abs(stageFloat - (i + 0.5));
           el.style.opacity = String(clamp01(1 - dist * 1.6) * 0.55);
         });
+
+        // Crystal glare sweep, confined to the dial stage (stageFloat 0→1):
+        // clamp01(stageFloat) tracks progress through that stage and then
+        // holds at 1 once past it, so this triangular curve naturally rises
+        // and falls back to 0 without needing to branch on which stage is
+        // active.
+        const glare = crystalGlareRef.current;
+        if (glare) {
+          const dialPhase = clamp01(stageFloat);
+          const glareStrength = clamp01(1 - Math.abs(dialPhase * 2 - 1));
+          glare.position.x = lerp(-0.75, 0.75, dialPhase);
+          glare.position.y = lerp(-0.6, 0.6, dialPhase);
+          glare.material.opacity = glareStrength * 0.85;
+        }
       },
     });
   }
@@ -322,6 +372,51 @@ export function useSectionAnimations(contentRef) {
         camera.fov = lerp(from.fov, AMBIENT_POSE.fov, p);
         camera.updateProjectionMatrix();
         if (canvasEl) canvasEl.style.opacity = String(lerp(1, 0.14, p));
+      },
+    });
+  }
+
+  // 3D unboxing scene: scoped entirely to #gift-atelier, self-resetting at
+  // both ends (progress 0 and 1 both map to openPhase 0), so it hands the
+  // ambient framing straight back to Services without any coordination with
+  // the surrounding info-section triggers. Peaks mid-section: the wooden
+  // presentation box scales in, its lid hinges open, and the watch shrinks
+  // and settles down into it as the canvas brightens back up.
+  function setupUnboxing(group, camera) {
+    const box = boxGroupRef.current;
+    const lid = boxLidRef.current;
+    const canvasEl = document.getElementById("canvasStage");
+    if (!box || !lid) return;
+
+    ScrollTrigger.create({
+      trigger: "#gift-atelier",
+      start: "top top",
+      end: "bottom bottom",
+      scrub: 0.4,
+      onToggle: makePrecisionToggle(precisionFramingRef, innerGroupRef),
+      onUpdate: (self) => {
+        const p = clamp01(self.progress);
+        const openPhase = easeInOut(clamp01(1 - Math.abs(p * 2 - 1)));
+
+        // Tilted, 3/4 "looking down into the open box" framing — a
+        // straight-on view reads the box as a flat rectangle rather than a
+        // dimensional container, so both the box and the nested watch pick
+        // up a matching X/Y tilt as they settle into place.
+        box.scale.setScalar(lerp(0, 0.62, openPhase));
+        box.rotation.x = lerp(0, -0.3, openPhase);
+        box.rotation.y = lerp(0, 0.35, openPhase);
+        lid.rotation.x = lerp(0, -2.0, openPhase);
+
+        group.position.x = 0;
+        group.position.y = lerp(AMBIENT_POSE.groupY, -0.95, openPhase);
+        group.scale.setScalar(lerp(1, 0.32, openPhase));
+        group.rotation.x = lerp(0, -0.24, openPhase);
+        group.rotation.y = lerp(AMBIENT_POSE.rotY, 0.35, openPhase);
+        camera.position.z = lerp(AMBIENT_POSE.camZ, 6.6, openPhase);
+        camera.fov = lerp(AMBIENT_POSE.fov, 30, openPhase);
+        camera.updateProjectionMatrix();
+
+        if (canvasEl) canvasEl.style.opacity = String(lerp(0.14, 0.55, openPhase));
       },
     });
   }
@@ -373,4 +468,16 @@ export function useSectionAnimations(contentRef) {
 
 function easeInOut(t) {
   return t * t * (3 - 2 * t);
+}
+
+// Shared by every precisely-choreographed section's onToggle: pause the
+// idle 360° drift (see WatchModel) and ease any drift it already
+// accumulated back to 0 so the section's exact framing isn't off-angle.
+function makePrecisionToggle(precisionFramingRef, innerGroupRef) {
+  return (self) => {
+    precisionFramingRef.current = self.isActive;
+    if (self.isActive && innerGroupRef.current) {
+      gsap.to(innerGroupRef.current.rotation, { y: 0, duration: 0.5, ease: "power2.out" });
+    }
+  };
 }
