@@ -4,11 +4,11 @@ export default function Footer() {
       <div className="footer__top">
         <span className="footer__logo">VELLMONT</span>
         <div className="footer__links">
-          <a href="#top">Home</a>
-          <a href="#heritage">Heritage</a>
-          <a href="#craftsmanship">Craftsmanship</a>
-          <a href="#specs">The Meridian</a>
-          <a href="#reserve">Reserve</a>
+          <a href="#hero">Home</a>
+          <a href="#assembly">Anatomy</a>
+          <a href="#mechanical-heart">Mechanical Heart</a>
+          <a href="#macro">Detail</a>
+          <a href="#lineup">Select Model</a>
         </div>
       </div>
       <div className="footer__bottom">

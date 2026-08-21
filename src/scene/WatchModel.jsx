@@ -1,15 +1,41 @@
 import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
+import * as THREE from "three";
+import gsap from "gsap";
 import { useScene } from "../context/SceneContext";
+import { useMaterial } from "../context/MaterialContext";
+import Particles from "./Particles";
 
 const MODEL_URL = "/models/watch.glb";
 const BASE_TILT_X = 0.15;
 
+const CASE_SHELL_NAMES = [
+  "Case",
+  "Bezel",
+  "Crown",
+  "Lug_0",
+  "Lug_1",
+  "Lug_2",
+  "Lug_3",
+  "StrapTop",
+  "StrapBottom",
+  "CaseBack",
+];
+
 export default function WatchModel() {
   const { scene } = useGLTF(MODEL_URL);
-  const { watchGroupRef, markReady } = useScene();
-  const innerRef = useRef(null);
+  const {
+    watchGroupRef,
+    innerGroupRef,
+    markReady,
+    movementNodesRef,
+    movementRestZRef,
+    caseMaterialsRef,
+    crystalMaterialRef,
+    MOVEMENT_LAYER_NAMES,
+  } = useScene();
+  const { presets, materialIndex } = useMaterial();
   const pointer = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
@@ -22,29 +48,68 @@ export default function WatchModel() {
   }, []);
 
   useEffect(() => {
+    const caseMaterials = new Set();
+    let crystalMaterial = null;
+
     scene.traverse((child) => {
-      if (child.isMesh) {
-        child.castShadow = true;
-        child.receiveShadow = true;
+      if (!child.isMesh) return;
+      child.castShadow = true;
+      child.receiveShadow = true;
+      if (CASE_SHELL_NAMES.includes(child.name) && child.material) {
+        child.material.transparent = true;
+        caseMaterials.add(child.material);
+      }
+      if (child.name === "Crystal" && child.material) {
+        child.material.transparent = true;
+        crystalMaterial = child.material;
       }
     });
+
+    caseMaterialsRef.current = Array.from(caseMaterials);
+    crystalMaterialRef.current = crystalMaterial;
+
+    const nodes = {};
+    const restZ = {};
+    MOVEMENT_LAYER_NAMES.forEach((name) => {
+      const node = scene.getObjectByName(name);
+      if (node) {
+        nodes[name] = node;
+        restZ[name] = node.position.z;
+      }
+    });
+    movementNodesRef.current = nodes;
+    movementRestZRef.current = restZ;
+
     markReady();
-  }, [scene, markReady]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scene]);
+
+  // Tween the shared case material(s) to the active preset whenever it changes.
+  useEffect(() => {
+    const preset = presets[materialIndex];
+    const targetColor = new THREE.Color(preset.color);
+    caseMaterialsRef.current.forEach((mat) => {
+      gsap.to(mat.color, { r: targetColor.r, g: targetColor.g, b: targetColor.b, duration: 0.9, ease: "power2.inOut" });
+      gsap.to(mat, { metalness: preset.metalness, roughness: preset.roughness, duration: 0.9, ease: "power2.inOut" });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [materialIndex]);
 
   useFrame(() => {
-    if (innerRef.current) {
-      innerRef.current.rotation.x +=
-        (BASE_TILT_X + pointer.current.y * 0.12 - innerRef.current.rotation.x) * 0.04;
-      innerRef.current.rotation.z +=
-        (-pointer.current.x * 0.08 - innerRef.current.rotation.z) * 0.04;
+    if (innerGroupRef.current) {
+      innerGroupRef.current.rotation.x +=
+        (BASE_TILT_X + pointer.current.y * 0.1 - innerGroupRef.current.rotation.x) * 0.04;
+      innerGroupRef.current.rotation.z +=
+        (-pointer.current.x * 0.06 - innerGroupRef.current.rotation.z) * 0.04;
     }
   });
 
   return (
     <group ref={watchGroupRef} dispose={null}>
-      <group ref={innerRef} rotation={[0.15, 0, 0]} scale={0.95}>
+      <group ref={innerGroupRef} rotation={[BASE_TILT_X, 0, 0]} scale={0.95}>
         <primitive object={scene} />
       </group>
+      <Particles />
     </group>
   );
 }

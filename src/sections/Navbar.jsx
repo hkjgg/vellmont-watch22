@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 
 const LINKS = [
-  { href: "#heritage", label: "Heritage" },
-  { href: "#craftsmanship", label: "Craftsmanship" },
-  { href: "#specs", label: "The Meridian" },
-  { href: "#reserve", label: "Reserve" },
+  { href: "#assembly", label: "Anatomy" },
+  { href: "#mechanical-heart", label: "Mechanical Heart" },
+  { href: "#macro", label: "Detail" },
+  { href: "#lineup", label: "Select Model" },
 ];
 
 export default function Navbar() {
@@ -19,7 +19,7 @@ export default function Navbar() {
 
   return (
     <header className={`navbar ${scrolled ? "navbar--scrolled" : ""}`}>
-      <a href="#top" className="navbar__logo">
+      <a href="#hero" className="navbar__logo">
         VELLMONT
       </a>
       <nav className={`navbar__links ${open ? "navbar__links--open" : ""}`}>

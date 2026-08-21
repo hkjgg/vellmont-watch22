@@ -1,31 +1,34 @@
 import { useRef } from "react";
 import { SceneProvider } from "./context/SceneContext";
-import { useScrollChoreography } from "./hooks/useScrollChoreography";
+import { MaterialProvider } from "./context/MaterialContext";
+import { useSectionAnimations } from "./hooks/useSectionAnimations";
 import CanvasStage from "./scene/CanvasStage";
 import Loader from "./scene/Loader";
+import HeroBgType from "./components/HeroBgType";
 import Navbar from "./sections/Navbar";
 import Hero from "./sections/Hero";
-import Heritage from "./sections/Heritage";
-import Craftsmanship from "./sections/Craftsmanship";
-import Specs from "./sections/Specs";
-import Reserve from "./sections/Reserve";
+import Assembly from "./sections/Assembly";
+import MechanicalHeart from "./sections/MechanicalHeart";
+import MacroZoom from "./sections/MacroZoom";
+import Lineup from "./sections/Lineup";
 import Footer from "./sections/Footer";
 
 function AppContent() {
   const contentRef = useRef(null);
-  useScrollChoreography(contentRef);
+  useSectionAnimations(contentRef);
 
   return (
     <>
       <Loader />
+      <HeroBgType />
       <CanvasStage />
       <Navbar />
       <main ref={contentRef} className="content">
         <Hero />
-        <Heritage />
-        <Craftsmanship />
-        <Specs />
-        <Reserve />
+        <Assembly />
+        <MechanicalHeart />
+        <MacroZoom />
+        <Lineup />
       </main>
       <Footer />
     </>
@@ -35,7 +38,9 @@ function AppContent() {
 export default function App() {
   return (
     <SceneProvider>
-      <AppContent />
+      <MaterialProvider>
+        <AppContent />
+      </MaterialProvider>
     </SceneProvider>
   );
 }
