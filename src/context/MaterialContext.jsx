@@ -7,10 +7,16 @@ export const MATERIAL_PRESETS = [
   { name: "Rose Gold", color: "#caa084", metalness: 1.0, roughness: 0.34 },
 ];
 
+// The strap is either "steel" (follows whichever case material is active,
+// for a cohesive all-metal look) or "leather" (a fixed leather appearance,
+// independent of the case material).
+export const LEATHER_PRESET = { name: "Leather", color: "#4a3225", metalness: 0.02, roughness: 0.78 };
+
 const MaterialContext = createContext(null);
 
 export function MaterialProvider({ children }) {
   const [materialIndex, setMaterialIndex] = useState(0);
+  const [strapMode, setStrapMode] = useState("steel");
 
   const value = useMemo(
     () => ({
@@ -19,8 +25,10 @@ export function MaterialProvider({ children }) {
       cycleMaterial: (dir = 1) =>
         setMaterialIndex((i) => (i + dir + MATERIAL_PRESETS.length) % MATERIAL_PRESETS.length),
       presets: MATERIAL_PRESETS,
+      strapMode,
+      setStrapMode,
     }),
-    [materialIndex]
+    [materialIndex, strapMode]
   );
 
   return <MaterialContext.Provider value={value}>{children}</MaterialContext.Provider>;

@@ -18,11 +18,51 @@ const EXPLODE_OFFSET = {
   Dial: 0.85,
 };
 
+// Ordered zones the page scrolls through; each names whether that section
+// should read on the light or dark palette. The scrub below smoothly
+// crossfades --bg/--ink/etc. as the viewport center crosses each boundary,
+// rather than snapping with a class toggle.
+const THEME_ZONES = [
+  { id: "hero", dark: false },
+  { id: "assembly", dark: false },
+  { id: "mechanical-heart", dark: true },
+  { id: "macro", dark: true },
+  { id: "personalize", dark: false },
+  { id: "gift-atelier", dark: true },
+  { id: "services", dark: false },
+  { id: "boutique", dark: true },
+  { id: "lineup", dark: false },
+];
+
+const LIGHT_PALETTE = {
+  bg: [246, 244, 239],
+  bgAlt: [237, 234, 225],
+  ink: [22, 20, 15],
+  inkDim: [110, 103, 89],
+  gold: [156, 116, 52],
+  goldBright: [185, 141, 71],
+  line: [22, 20, 15],
+};
+const DARK_PALETTE = {
+  bg: [10, 10, 11],
+  bgAlt: [17, 17, 19],
+  ink: [242, 236, 225],
+  inkDim: [168, 162, 154],
+  gold: [201, 166, 104],
+  goldBright: [232, 202, 160],
+  line: [242, 236, 225],
+};
+
 const MACRO_STAGES = [
   { rotY: 0.18, camZ: 4.4, fov: 24, groupY: 0.05 },
   { rotY: -Math.PI * 0.4, camZ: 4.1, fov: 21, groupY: 0 },
   { rotY: -Math.PI * 0.12, camZ: 4.6, fov: 26, groupY: -1.35 },
 ];
+
+// Resting camera/group pose used both to settle the watch after Macro Zoom
+// (before the informational sections) and as the starting point for the
+// Lineup return — keeping the two in sync avoids a visual snap between them.
+const AMBIENT_POSE = { rotY: 0, camZ: 7.4, fov: 27, groupY: 0.05 };
 
 export function useSectionAnimations(contentRef) {
   const {
@@ -32,6 +72,7 @@ export function useSectionAnimations(contentRef) {
     movementNodesRef,
     movementRestZRef,
     caseMaterialsRef,
+    strapMaterialsRef,
     crystalMaterialRef,
     assemblyActiveRef,
     assemblyExplodeRef,
@@ -47,10 +88,12 @@ export function useSectionAnimations(contentRef) {
       if (!group || !camera || !contentRef.current) return;
 
       ctx = gsap.context(() => {
+        setupThemeScrub();
         setupHeroBgFade();
         setupAssembly(group, camera);
         setupMechanicalHeart(group, camera);
         setupMacroZoom(group, camera);
+        setupInfoSectionsTransition(group, camera);
         setupLineupReturn(group, camera);
         setupGenericReveals();
       });
@@ -61,6 +104,54 @@ export function useSectionAnimations(contentRef) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contentRef]);
+
+  function setupThemeScrub() {
+    const zones = THEME_ZONES.map((z) => ({ ...z, el: document.getElementById(z.id) })).filter((z) => z.el);
+    if (!zones.length) return;
+    const CROSSFADE = 160; // px, viewport-center crossfade window at each boundary
+    const root = document.documentElement;
+    const CSS_VAR_NAMES = { bg: "--bg", bgAlt: "--bg-alt", ink: "--ink", inkDim: "--ink-dim", gold: "--gold", goldBright: "--gold-bright" };
+    const lerpRgb = (a, b, t) => [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
+
+    const applyTheme = (amount) => {
+      Object.entries(CSS_VAR_NAMES).forEach(([key, cssVar]) => {
+        const [r, g, b] = lerpRgb(LIGHT_PALETTE[key], DARK_PALETTE[key], amount);
+        root.style.setProperty(cssVar, `rgb(${r.toFixed(0)}, ${g.toFixed(0)}, ${b.toFixed(0)})`);
+      });
+      const [lr, lg, lb] = lerpRgb(LIGHT_PALETTE.line, DARK_PALETTE.line, amount);
+      root.style.setProperty("--line", `rgba(${lr.toFixed(0)}, ${lg.toFixed(0)}, ${lb.toFixed(0)}, 0.14)`);
+      root.style.setProperty("--gold-graphic", `rgb(${lerpRgb(LIGHT_PALETTE.gold, DARK_PALETTE.goldBright, amount).map((v) => v.toFixed(0)).join(", ")})`);
+    };
+
+    ScrollTrigger.create({
+      trigger: document.body,
+      start: "top top",
+      end: "bottom bottom",
+      scrub: true,
+      onUpdate: () => {
+        const centerY = window.scrollY + window.innerHeight * 0.4;
+        let amount = zones[0].dark ? 1 : 0;
+        for (let i = 0; i < zones.length; i++) {
+          const zone = zones[i];
+          const top = zone.el.offsetTop;
+          const bottom = top + zone.el.offsetHeight;
+          if (centerY < top || centerY > bottom) continue;
+          amount = zone.dark ? 1 : 0;
+          const next = zones[i + 1];
+          const prev = zones[i - 1];
+          if (next && next.dark !== zone.dark && centerY > bottom - CROSSFADE) {
+            const t = clamp01((centerY - (bottom - CROSSFADE)) / CROSSFADE);
+            amount = lerp(zone.dark ? 1 : 0, next.dark ? 1 : 0, t);
+          } else if (prev && prev.dark !== zone.dark && centerY < top + CROSSFADE) {
+            const t = clamp01(((top + CROSSFADE) - centerY) / CROSSFADE);
+            amount = lerp(zone.dark ? 1 : 0, prev.dark ? 1 : 0, t);
+          }
+          break;
+        }
+        applyTheme(amount);
+      },
+    });
+  }
 
   function setupHeroBgFade() {
     ScrollTrigger.create({
@@ -107,20 +198,15 @@ export function useSectionAnimations(contentRef) {
         caseMaterialsRef.current.forEach((mat) => {
           mat.opacity = fadeOut;
         });
+        strapMaterialsRef.current.forEach((mat) => {
+          mat.opacity = fadeOut;
+        });
         if (crystalMaterialRef.current) crystalMaterialRef.current.opacity = fadeOut * 0.35;
       },
     });
   }
 
   function setupMechanicalHeart(group, camera) {
-    ScrollTrigger.create({
-      trigger: "#mechanical-heart",
-      start: "top 55%",
-      endTrigger: "#macro",
-      end: "bottom 55%",
-      toggleClass: { targets: document.body, className: "theme-dark" },
-    });
-
     ScrollTrigger.create({
       trigger: "#mechanical-heart",
       start: "top top",
@@ -145,6 +231,9 @@ export function useSectionAnimations(contentRef) {
             node.position.z = (restZ[name] ?? 0) + offset * (1 - reassemble);
           });
           caseMaterialsRef.current.forEach((mat) => {
+            mat.opacity = reassemble;
+          });
+          strapMaterialsRef.current.forEach((mat) => {
             mat.opacity = reassemble;
           });
           if (crystalMaterialRef.current) crystalMaterialRef.current.opacity = reassemble * 0.35;
@@ -182,6 +271,9 @@ export function useSectionAnimations(contentRef) {
         caseMaterialsRef.current.forEach((mat) => {
           mat.opacity = 1;
         });
+        strapMaterialsRef.current.forEach((mat) => {
+          mat.opacity = 1;
+        });
         if (crystalMaterialRef.current) crystalMaterialRef.current.opacity = 0.35;
 
         const stageFloat = clamp01(self.progress) * MACRO_STAGES.length;
@@ -207,8 +299,36 @@ export function useSectionAnimations(contentRef) {
     });
   }
 
-  function setupLineupReturn(group, camera) {
+  // Between Macro Zoom and Lineup sit four informational sections
+  // (Personalize, Gift Atelier, Services, Boutique) with no 3D choreography
+  // of their own. Without this, the watch stays frozen at Macro's last,
+  // heavily-zoomed framing — a huge tilted metal surface — behind all of
+  // them. Settle it to a calm ambient pose and fade the canvas down so it
+  // doesn't dominate that reading-focused stretch of the page.
+  function setupInfoSectionsTransition(group, camera) {
     const from = MACRO_STAGES[MACRO_STAGES.length - 1];
+    const canvasEl = document.getElementById("canvasStage");
+    ScrollTrigger.create({
+      trigger: "#personalize",
+      start: "top bottom",
+      end: "top top",
+      scrub: 0.4,
+      onUpdate: (self) => {
+        const p = easeInOut(self.progress);
+        group.rotation.y = lerp(from.rotY, AMBIENT_POSE.rotY, p);
+        group.position.y = lerp(from.groupY, AMBIENT_POSE.groupY, p);
+        group.position.x = 0;
+        camera.position.z = lerp(from.camZ, AMBIENT_POSE.camZ, p);
+        camera.fov = lerp(from.fov, AMBIENT_POSE.fov, p);
+        camera.updateProjectionMatrix();
+        if (canvasEl) canvasEl.style.opacity = String(lerp(1, 0.14, p));
+      },
+    });
+  }
+
+  function setupLineupReturn(group, camera) {
+    const from = AMBIENT_POSE;
+    const canvasEl = document.getElementById("canvasStage");
     ScrollTrigger.create({
       trigger: "#lineup",
       start: "top 80%",
@@ -222,40 +342,32 @@ export function useSectionAnimations(contentRef) {
         camera.position.z = lerp(from.camZ, 7, p);
         camera.fov = lerp(from.fov, 28, p);
         camera.updateProjectionMatrix();
+        if (canvasEl) canvasEl.style.opacity = String(lerp(0.14, 1, p));
       },
     });
   }
 
+  // Plain CSS transitions + IntersectionObserver, not GSAP — reveals are
+  // simple one-shot fade/slide-ins with no reason to depend on a
+  // continuously-progressing tween. GSAP's ticker is rAF-driven and can be
+  // starved for long stretches by a busy, continuously-rendering Canvas
+  // (observed on slow/software-rendered GPUs), which would otherwise leave
+  // a section's reveal stuck invisible forever if it happened to trigger
+  // during a stall. IntersectionObserver + CSS has no such dependency.
   function setupGenericReveals() {
-    gsap.utils.toArray(".reveal").forEach((el) => {
-      gsap.fromTo(
-        el,
-        { autoAlpha: 0, y: 50 },
-        {
-          autoAlpha: 1,
-          y: 0,
-          duration: 1,
-          ease: "power3.out",
-          scrollTrigger: { trigger: el, start: "top 85%", toggleActions: "play none none reverse" },
-        }
-      );
-    });
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add("is-visible");
+          io.unobserve(entry.target);
+        });
+      },
+      { threshold: 0.1, rootMargin: "0px 0px -8% 0px" }
+    );
 
-    gsap.utils.toArray(".reveal-stagger").forEach((group) => {
-      const items = group.querySelectorAll(".reveal-item");
-      gsap.fromTo(
-        items,
-        { autoAlpha: 0, y: 36 },
-        {
-          autoAlpha: 1,
-          y: 0,
-          duration: 0.8,
-          stagger: 0.1,
-          ease: "power3.out",
-          scrollTrigger: { trigger: group, start: "top 80%", toggleActions: "play none none reverse" },
-        }
-      );
-    });
+    document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
+    document.querySelectorAll(".reveal-stagger .reveal-item").forEach((el) => io.observe(el));
   }
 }
 

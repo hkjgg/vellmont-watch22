@@ -8,12 +8,16 @@ export default function Footer() {
           <a href="#assembly">Anatomy</a>
           <a href="#mechanical-heart">Mechanical Heart</a>
           <a href="#macro">Detail</a>
+          <a href="#personalize">Personalize</a>
+          <a href="#gift-atelier">Gifting</a>
+          <a href="#services">Services</a>
+          <a href="#boutique">Boutiques</a>
           <a href="#lineup">Select Model</a>
         </div>
       </div>
       <div className="footer__bottom">
         <span>© {new Date().getFullYear()} VELLMONT. All rights reserved.</span>
-        <span>Geneva · New York · Tokyo</span>
+        <span>Geneva · Paris · Beirut</span>
       </div>
     </footer>
   );

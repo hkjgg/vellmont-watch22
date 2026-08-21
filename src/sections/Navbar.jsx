@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 
 const LINKS = [
   { href: "#assembly", label: "Anatomy" },
-  { href: "#mechanical-heart", label: "Mechanical Heart" },
   { href: "#macro", label: "Detail" },
+  { href: "#personalize", label: "Personalize" },
+  { href: "#boutique", label: "Boutiques" },
   { href: "#lineup", label: "Select Model" },
 ];
 

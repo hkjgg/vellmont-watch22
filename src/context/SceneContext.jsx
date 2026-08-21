@@ -1,4 +1,4 @@
-import { createContext, useContext, useRef, useState } from "react";
+import { createContext, useContext, useMemo, useRef, useState } from "react";
 
 const SceneContext = createContext(null);
 
@@ -17,6 +17,9 @@ export function SceneProvider({ children }) {
   const movementRestZRef = useRef({});
   // Materials to recolor on material swap / fade during explode.
   const caseMaterialsRef = useRef([]);
+  // Strap materials — recolored independently (steel matches the case
+  // preset, leather is a fixed appearance) but still faded during explode.
+  const strapMaterialsRef = useRef([]);
   const crystalMaterialRef = useRef(null);
 
   // DOM label elements for the exploded-assembly section, keyed by layer name,
@@ -48,32 +51,35 @@ export function SceneProvider({ children }) {
     callbacksRef.current = [];
   };
 
-  return (
-    <SceneContext.Provider
-      value={{
-        watchGroupRef,
-        innerGroupRef,
-        cameraRef,
-        movementNodesRef,
-        movementRestZRef,
-        caseMaterialsRef,
-        crystalMaterialRef,
-        assemblyLabelRefs,
-        assemblyActiveRef,
-        assemblyExplodeRef,
-        particleEnergyRef,
-        canvasPainted,
-        setCanvasPainted,
-        environmentReady,
-        setEnvironmentReady,
-        onReady,
-        markReady,
-        MOVEMENT_LAYER_NAMES,
-      }}
-    >
-      {children}
-    </SceneContext.Provider>
+  const value = useMemo(
+    () => ({
+      watchGroupRef,
+      innerGroupRef,
+      cameraRef,
+      movementNodesRef,
+      movementRestZRef,
+      caseMaterialsRef,
+      strapMaterialsRef,
+      crystalMaterialRef,
+      assemblyLabelRefs,
+      assemblyActiveRef,
+      assemblyExplodeRef,
+      particleEnergyRef,
+      canvasPainted,
+      setCanvasPainted,
+      environmentReady,
+      setEnvironmentReady,
+      onReady,
+      markReady,
+      MOVEMENT_LAYER_NAMES,
+    }),
+    // Refs/functions are stable identities from useRef/closures over them;
+    // only these two booleans ever actually change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [canvasPainted, environmentReady]
   );
+
+  return <SceneContext.Provider value={value}>{children}</SceneContext.Provider>;
 }
 
 export function useScene() {

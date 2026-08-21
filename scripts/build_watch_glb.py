@@ -2,8 +2,11 @@
 and a named, exploded-assembly-ready movement stack, exported as watch.glb.
 
 Node names are load-bearing — the app looks parts up by these exact names:
-  Material swap (shared "CaseMetal" material): Case, Bezel, Crown, Lug_0..3,
-    StrapTop, StrapBottom, CaseBack
+  Case material swap (shared "CaseMetal" material): Case, Bezel, Crown,
+    Lug_0..3, CaseBack
+  Strap material swap (separate "StrapMetal" material, independently
+    swappable between the case-matched metal and a leather look):
+    StrapTop, StrapBottom
   Exploded movement layers (each its own top-level node): Dial, Tourbillon,
     Mainplate, Barrel, Baseplate, Weight
 
@@ -23,6 +26,14 @@ CASE_METAL = PBRMaterial(
     metallicFactor=1.0,
     roughnessFactor=0.28,
     name="CaseMetal",
+)
+# Separate instance (same initial look as CASE_METAL) so the strap can be
+# retargeted to a leather appearance independently of the case material.
+STRAP_METAL = PBRMaterial(
+    baseColorFactor=[0.78, 0.79, 0.81, 1.0],
+    metallicFactor=1.0,
+    roughnessFactor=0.28,
+    name="StrapMetal",
 )
 DIAL_BLACK = PBRMaterial(baseColorFactor=[0.03, 0.03, 0.035, 1.0], metallicFactor=0.2, roughnessFactor=0.4, name="DialBlack")
 CRYSTAL = PBRMaterial(baseColorFactor=[0.8, 0.9, 1.0, 0.35], metallicFactor=0.0, roughnessFactor=0.05, name="Crystal", alphaMode="BLEND")
@@ -75,8 +86,8 @@ def build_strap(direction):
     return trimesh.util.concatenate(links)
 
 
-add(build_strap(1), CASE_METAL, "StrapTop")
-add(build_strap(-1), CASE_METAL, "StrapBottom")
+add(build_strap(1), STRAP_METAL, "StrapTop")
+add(build_strap(-1), STRAP_METAL, "StrapBottom")
 
 back = trimesh.creation.cylinder(radius=1.0, height=0.04, sections=64)
 add(back, CASE_METAL, "CaseBack", transform=trimesh.transformations.translation_matrix([0, 0, -0.19]))
