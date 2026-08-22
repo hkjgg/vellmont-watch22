@@ -3,7 +3,12 @@ and a named, exploded-assembly-ready movement stack, exported as watch.glb.
 
 Node names are load-bearing — the app looks parts up by these exact names:
   Case material swap (shared "CaseMetal" material): Case, Bezel, Crown,
-    Lug_0..3, CaseBack
+    Lug_0..3
+  Case back (separate "CaseBackMetal" material, tweened in lockstep with
+    the case color but never shared with it): CaseBack — kept separate,
+    with real planar UVs (unlike every other primitive here), so the app
+    can drop a live engraving texture onto just this one face via
+    material.map without it bleeding onto the rest of the case
   Strap material swap (separate "StrapMetal" material, independently
     swappable between the case-matched metal and a leather look): each
     bracelet link and clasp half is its own top-level node so the assembly
@@ -38,6 +43,15 @@ STRAP_METAL = PBRMaterial(
     roughnessFactor=0.28,
     name="StrapMetal",
 )
+# Separate instance (same initial look as CASE_METAL) so the case back can
+# carry a live engraving texture without it appearing on the rest of the
+# case shell.
+CASEBACK_METAL = PBRMaterial(
+    baseColorFactor=[0.78, 0.79, 0.81, 1.0],
+    metallicFactor=1.0,
+    roughnessFactor=0.28,
+    name="CaseBackMetal",
+)
 DIAL_BLACK = PBRMaterial(baseColorFactor=[0.03, 0.03, 0.035, 1.0], metallicFactor=0.2, roughnessFactor=0.4, name="DialBlack")
 CRYSTAL = PBRMaterial(baseColorFactor=[0.8, 0.9, 1.0, 0.35], metallicFactor=0.0, roughnessFactor=0.05, name="Crystal", alphaMode="BLEND")
 WHITE = PBRMaterial(baseColorFactor=[0.95, 0.95, 0.92, 1.0], metallicFactor=0.1, roughnessFactor=0.5, name="MarkerWhite")
@@ -49,8 +63,11 @@ RUBY = PBRMaterial(baseColorFactor=[0.7, 0.08, 0.12, 1.0], metallicFactor=0.1, r
 scene = trimesh.Scene()
 
 
-def add(mesh, material, name, parent=None, transform=None):
-    mesh.visual = trimesh.visual.TextureVisuals(material=material)
+def add(mesh, material, name, parent=None, transform=None, uv=None):
+    # uv is only ever passed for CaseBack — every other primitive here
+    # relies purely on the PBR scalar factors (color/metalness/roughness),
+    # so trimesh's default (no UVs) is fine for them.
+    mesh.visual = trimesh.visual.TextureVisuals(uv=uv, material=material)
     scene.add_geometry(mesh, node_name=name, parent_node_name=parent, transform=transform)
 
 
@@ -99,8 +116,16 @@ def build_strap_links(direction, prefix):
 build_strap_links(1, "StrapTop")
 build_strap_links(-1, "StrapBottom")
 
+# Planar radial UVs (u,v = x,y projected onto the unit disc) so a canvas
+# texture can be dropped onto material.map at runtime and land correctly —
+# every other mesh here skips UVs entirely since nothing else needs a
+# texture, only PBR scalar factors.
 back = trimesh.creation.cylinder(radius=1.0, height=0.04, sections=64)
-add(back, CASE_METAL, "CaseBack", transform=trimesh.transformations.translation_matrix([0, 0, -0.19]))
+back_uv = np.column_stack([
+    (back.vertices[:, 0] + 1.0) / 2.0,
+    (back.vertices[:, 1] + 1.0) / 2.0,
+])
+add(back, CASEBACK_METAL, "CaseBack", transform=trimesh.transformations.translation_matrix([0, 0, -0.19]), uv=back_uv)
 
 # ------------------------------------------------------- Movement (exploded)
 # Each of these six is a top-level named node at its assembled ("closed")

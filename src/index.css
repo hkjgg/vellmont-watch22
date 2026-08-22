@@ -158,7 +158,12 @@ p { line-height: 1.75; color: var(--ink-dim); font-size: 1.02rem; }
   position: fixed;
   top: 0;
   left: 0;
-  z-index: 31;
+  /* z-index is owned by JS (useSectionAnimations' setupCinematicTitle) —
+     it must sit behind the watch canvas (1) while still large/centered on
+     Hero, and above the navbar's blurred bar (30) once docked into it, so
+     a single fixed value can't serve both states. This default only
+     matters for the instant before that effect's first apply() runs. */
+  z-index: 0;
   pointer-events: none;
   transform-origin: 0 0;
   font-family: var(--font-display);

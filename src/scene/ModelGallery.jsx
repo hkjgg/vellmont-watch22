@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from "react";
+import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 import gsap from "gsap";
@@ -13,11 +14,12 @@ const GALLERY_SCALE = 0.62;
 const GROUP_MATCH = {
   CaseMetal: "case",
   StrapMetal: "case",
+  CaseBackMetal: "case",
   DialBlack: "dial",
   MarkerWhite: "hands",
   GoldAccent: "accent",
 };
-const UPGRADE_NAMES = new Set(["CaseMetal", "StrapMetal", "Crystal", "DialBlack"]);
+const UPGRADE_NAMES = new Set(["CaseMetal", "StrapMetal", "Crystal", "DialBlack", "CaseBackMetal"]);
 
 // Deep-clones the shared watch scene and bakes one preset's colors in
 // permanently — unlike the single shared WatchModel instance (whose
@@ -131,6 +133,18 @@ export default function ModelGallery() {
 
   useEffect(() => {
     galleryFocusFnRef.current = focusOn;
+  });
+
+  // Subtle continuous spin on all four — skipped entirely while the group
+  // is hidden (setupModelGallery sets .visible false outside the Lineup
+  // range) so this costs nothing on the rest of the page.
+  useFrame((_, rawDelta) => {
+    const gallery = galleryGroupRef.current;
+    if (!gallery || !gallery.visible) return;
+    const dt = Math.min(rawDelta, 0.033);
+    Object.values(galleryInstanceRefs.current).forEach((obj) => {
+      if (obj) obj.rotation.y += dt * 0.15;
+    });
   });
 
   return (

@@ -187,6 +187,13 @@ export function useSectionAnimations(contentRef) {
       const y = lerp(state.heroY, state.dockY, p);
       const baseScale = lerp(state.heroScale, 1, p);
       title.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${baseScale * state.reactiveScale})`;
+      // While still large/centered, this needs to sit BEHIND the watch
+      // canvas (z-index 1) so it never paints over the dial — it only
+      // needs to clear the navbar's blurred bar (z-index 30) once it has
+      // actually moved into that corner. By p=0.35 it has already shrunk
+      // and shifted well clear of the watch's on-screen bounds, so the
+      // flip reads as part of the motion rather than a visible pop.
+      title.style.zIndex = p > 0.35 ? "31" : "0";
     };
 
     const measure = () => {
@@ -273,6 +280,7 @@ export function useSectionAnimations(contentRef) {
         setupMechanicalHeart(group, camera);
         setupMacroZoom(group, camera);
         setupInfoSectionsTransition(group, camera);
+        setupPersonalizeReveal(group, camera);
         setupUnboxing(group, camera);
         setupLineupReturn(group, camera);
         setupModelGallery(group, camera);
@@ -585,6 +593,43 @@ export function useSectionAnimations(contentRef) {
     });
   }
 
+  // Case-back reveal: scoped to #personalize. This section is a normal,
+  // non-pinned, roughly-one-viewport-tall block, so "top top"->"bottom
+  // bottom" would collapse to a near-zero scrub range — instead this uses
+  // "top top"->"bottom top" (scroll distance == the section's own height),
+  // which lines up exactly with where setupInfoSectionsTransition's entry
+  // hands off (ends at "top top") and where setupUnboxing's #gift-atelier
+  // trigger picks up next (starts at "top top" of the very next section, at
+  // the same scrollY as this trigger's "bottom top") — a clean, non-
+  // overlapping sequential handoff, matching that established pattern.
+  // Self-resets to the ambient framing at both ends: peaks mid-section,
+  // turning the watch to show its case back and brightening the canvas
+  // enough for the live engraving texture (see Personalize.jsx's
+  // caseBackMaterialRef binding) to actually read.
+  function setupPersonalizeReveal(group, camera) {
+    const canvasEl = document.getElementById("canvasStage");
+    ScrollTrigger.create({
+      trigger: "#personalize",
+      start: "top top",
+      end: "bottom top",
+      scrub: 0.4,
+      onToggle: makePrecisionToggle(precisionFramingRef, innerGroupRef),
+      onUpdate: (self) => {
+        const p = clamp01(self.progress);
+        const revealPhase = easeInOut(clamp01(1 - Math.abs(p * 2 - 1)));
+
+        group.rotation.y = lerp(AMBIENT_POSE.rotY, Math.PI, revealPhase);
+        group.position.y = AMBIENT_POSE.groupY;
+        group.position.x = 0;
+        camera.position.z = lerp(AMBIENT_POSE.camZ, 6.1, revealPhase);
+        camera.fov = lerp(AMBIENT_POSE.fov, 23, revealPhase);
+        camera.updateProjectionMatrix();
+
+        if (canvasEl) canvasEl.style.opacity = String(lerp(0.14, 0.85, revealPhase));
+      },
+    });
+  }
+
   // 3D unboxing scene: scoped entirely to #gift-atelier, self-resetting at
   // both ends (progress 0 and 1 both map to openPhase 0), so it hands the
   // ambient framing straight back to Services without any coordination with
@@ -662,14 +707,29 @@ export function useSectionAnimations(contentRef) {
   function setupModelGallery(group, camera) {
     const gallery = galleryGroupRef.current;
     if (!gallery) return;
+    // Four full watch clones (~50 meshes each) is real per-frame render
+    // cost if left submitted to the GPU on every frame across the whole
+    // page — three.js skips an invisible object's entire subtree during
+    // render, so gating this on scroll position (rather than just scaling
+    // it to ~0) is what actually removes that cost outside Lineup instead
+    // of just making it invisible while still fully rendered.
+    gallery.visible = false;
 
     ScrollTrigger.create({
       trigger: "#lineup",
       start: "top 20%",
       end: "bottom bottom",
       scrub: 0.4,
-      onLeave: () => gsap.to(camera.position, { x: 0, duration: 0.6, ease: "power2.out" }),
-      onLeaveBack: () => gsap.to(camera.position, { x: 0, duration: 0.6, ease: "power2.out" }),
+      onEnter: () => { gallery.visible = true; },
+      onEnterBack: () => { gallery.visible = true; },
+      onLeave: () => {
+        gallery.visible = false;
+        gsap.to(camera.position, { x: 0, duration: 0.6, ease: "power2.out" });
+      },
+      onLeaveBack: () => {
+        gallery.visible = false;
+        gsap.to(camera.position, { x: 0, duration: 0.6, ease: "power2.out" });
+      },
       onUpdate: (self) => {
         const p = easeInOut(self.progress);
         group.scale.setScalar(lerp(1, 0.001, p));

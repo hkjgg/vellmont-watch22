@@ -51,12 +51,12 @@ function CrystalGlare({ glareRef }) {
   );
 }
 
-const CASE_ONLY_NAMES = ["Case", "Bezel", "Crown", "Lug_0", "Lug_1", "Lug_2", "Lug_3", "CaseBack"];
+const CASE_ONLY_NAMES = ["Case", "Bezel", "Crown", "Lug_0", "Lug_1", "Lug_2", "Lug_3"];
 // Each bracelet link/clasp half is its own node (StrapTop_L0..L10,
 // ClaspTop, StrapBottom_L0..L10, ClaspBottom) so it can be exploded
 // individually — matched by prefix rather than an exact list.
 const isStrapNode = (name) => name.startsWith("StrapTop") || name.startsWith("StrapBottom") || name.startsWith("Clasp");
-const UPGRADE_NAMES = new Set(["CaseMetal", "StrapMetal", "Crystal", "DialBlack"]);
+const UPGRADE_NAMES = new Set(["CaseMetal", "StrapMetal", "Crystal", "DialBlack", "CaseBackMetal"]);
 
 // Tweens every property a watch variation preset can specify — color,
 // metalness, roughness, and emissive/emissiveIntensity (only the Stealth
@@ -90,6 +90,7 @@ export default function WatchModel() {
     strapMaterialsRef,
     crystalMaterialRef,
     dialMaterialRef,
+    caseBackMaterialRef,
     handMaterialsRef,
     accentMaterialsRef,
     strapNodesRef,
@@ -121,6 +122,7 @@ export default function WatchModel() {
     const strapNodes = {};
     let crystalMaterial = null;
     let dialMaterial = null;
+    let caseBackMaterial = null;
     // Several meshes share one glTF material by reference (e.g. all 22
     // bracelet links share "StrapMetal") — upgrade each shared name once
     // and reuse the same instance, rather than minting a separate
@@ -154,6 +156,16 @@ export default function WatchModel() {
         child.material.transparent = true;
         crystalMaterial = child.material;
       }
+      // CaseBack has its own material ("CaseBackMetal") rather than sharing
+      // "CaseMetal" with the rest of the shell, so Personalize.jsx can drop
+      // an engraving texture onto it alone — but it should still tween case
+      // color/metalness/roughness in sync with the rest of the case on a
+      // preset swap, so it's folded into caseMaterials too.
+      if (child.material?.name === "CaseBackMetal") {
+        child.material.transparent = true;
+        caseBackMaterial = child.material;
+        caseMaterials.add(child.material);
+      }
       // "Dial" names both the disc mesh and the parent node for its hands/
       // markers (separate, always-opaque meshes) — only the disc itself
       // should ever go translucent, so this checks the exact node name.
@@ -172,6 +184,7 @@ export default function WatchModel() {
     strapMaterialsRef.current = Array.from(strapMaterials);
     crystalMaterialRef.current = crystalMaterial;
     dialMaterialRef.current = dialMaterial;
+    caseBackMaterialRef.current = caseBackMaterial;
     handMaterialsRef.current = Array.from(handMaterials);
     accentMaterialsRef.current = Array.from(accentMaterials);
     strapNodesRef.current = strapNodes;

@@ -27,6 +27,11 @@ export function SceneProvider({ children }) {
   // outer case shell. Hands/markers are separate opaque meshes parented to
   // this same node and stay solid on top, like an open-worked dial.
   const dialMaterialRef = useRef(null);
+  // The case-back's own material — separate from the shared case material
+  // (see build_watch_glb.py) so Personalize.jsx can drop a live-generated
+  // engraving canvas texture onto it via .map without that texture
+  // appearing on the rest of the case shell.
+  const caseBackMaterialRef = useRef(null);
   // Hands (hour/minute) and accent (markers + second hand + center pin) —
   // the other two material groups a watch variation preset drives, matched
   // by glTF material name ("MarkerWhite"/"GoldAccent") rather than mesh
@@ -109,6 +114,7 @@ export function SceneProvider({ children }) {
       strapMaterialsRef,
       crystalMaterialRef,
       dialMaterialRef,
+      caseBackMaterialRef,
       handMaterialsRef,
       accentMaterialsRef,
       strapNodesRef,
