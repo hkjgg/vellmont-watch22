@@ -125,7 +125,6 @@ export function useSectionAnimations(contentRef) {
     crystalGlareRef,
     boxGroupRef,
     boxLidRef,
-    galleryGroupRef,
     setDofEnabled,
     precisionFramingRef,
     assemblyActiveRef,
@@ -291,7 +290,6 @@ export function useSectionAnimations(contentRef) {
         setupPersonalizeReveal(group, camera);
         setupUnboxing(group, camera);
         setupLineupReturn(group, camera);
-        setupModelGallery(group, camera);
         setupGenericReveals();
         setupDofGate();
       });
@@ -648,8 +646,11 @@ export function useSectionAnimations(contentRef) {
   // both ends (progress 0 and 1 both map to openPhase 0), so it hands the
   // ambient framing straight back to Services without any coordination with
   // the surrounding info-section triggers. Peaks mid-section: the wooden
-  // presentation box scales in, its lid hinges open, and the watch shrinks
-  // and settles down into it as the canvas brightens back up.
+  // presentation box scales in and its lid hinges open, offset toward
+  // screen-right so it clears the text column (see GiftAtelier.jsx's
+  // two-column layout) instead of sitting centered behind it — the watch
+  // itself just shrinks away rather than nesting inside the box, since a
+  // watch-sized mesh behind foreground text was the actual collision.
   function setupUnboxing(group, camera) {
     const box = boxGroupRef.current;
     const lid = boxLidRef.current;
@@ -668,18 +669,15 @@ export function useSectionAnimations(contentRef) {
 
         // Tilted, 3/4 "looking down into the open box" framing — a
         // straight-on view reads the box as a flat rectangle rather than a
-        // dimensional container, so both the box and the nested watch pick
-        // up a matching X/Y tilt as they settle into place.
+        // dimensional container.
         box.scale.setScalar(lerp(0, 0.62, openPhase));
+        box.position.x = lerp(0, 1.15, openPhase);
         box.rotation.x = lerp(0, -0.3, openPhase);
         box.rotation.y = lerp(0, 0.35, openPhase);
         lid.rotation.x = lerp(0, -2.0, openPhase);
 
         group.position.x = 0;
-        group.position.y = lerp(AMBIENT_POSE.groupY, -0.95, openPhase);
-        group.scale.setScalar(lerp(1, 0.32, openPhase));
-        group.rotation.x = lerp(0, -0.24, openPhase);
-        group.rotation.y = lerp(AMBIENT_POSE.rotY, 0.35, openPhase);
+        group.scale.setScalar(lerp(1, 0.001, openPhase));
         camera.position.z = lerp(AMBIENT_POSE.camZ, 6.6, openPhase);
         camera.fov = lerp(AMBIENT_POSE.fov, 30, openPhase);
         camera.updateProjectionMatrix();
@@ -706,51 +704,6 @@ export function useSectionAnimations(contentRef) {
         camera.fov = lerp(from.fov, 28, p);
         camera.updateProjectionMatrix();
         if (canvasEl) canvasEl.style.opacity = String(lerp(0.14, 1, p));
-      },
-    });
-  }
-
-  // Model Selection gallery: picks up exactly where setupLineupReturn ends
-  // (camera at z:7/fov:28, main watch at rest) and swaps it out for the
-  // four-wide gallery array — the single shared watch shrinks away as the
-  // gallery scales in, and the camera pulls back/widens to frame all four.
-  // camera.position.x is deliberately left untouched here on every tick
-  // (unlike the other properties) so it doesn't fight ModelGallery's own
-  // click-to-focus pan; onLeave/onLeaveBack instead reset it once, only
-  // when scrolling fully out of this section either direction.
-  function setupModelGallery(group, camera) {
-    const gallery = galleryGroupRef.current;
-    if (!gallery) return;
-    // Four full watch clones (~50 meshes each) is real per-frame render
-    // cost if left submitted to the GPU on every frame across the whole
-    // page — three.js skips an invisible object's entire subtree during
-    // render, so gating this on scroll position (rather than just scaling
-    // it to ~0) is what actually removes that cost outside Lineup instead
-    // of just making it invisible while still fully rendered.
-    gallery.visible = false;
-
-    ScrollTrigger.create({
-      trigger: "#lineup",
-      start: "top 20%",
-      end: "bottom bottom",
-      scrub: 0.4,
-      onEnter: () => { gallery.visible = true; },
-      onEnterBack: () => { gallery.visible = true; },
-      onLeave: () => {
-        gallery.visible = false;
-        gsap.to(camera.position, { x: 0, duration: 0.6, ease: "power2.out" });
-      },
-      onLeaveBack: () => {
-        gallery.visible = false;
-        gsap.to(camera.position, { x: 0, duration: 0.6, ease: "power2.out" });
-      },
-      onUpdate: (self) => {
-        const p = easeInOut(self.progress);
-        group.scale.setScalar(lerp(1, 0.001, p));
-        gallery.scale.setScalar(lerp(0.001, 1, p));
-        camera.position.z = lerp(7, 9, p);
-        camera.fov = lerp(28, 34, p);
-        camera.updateProjectionMatrix();
       },
     });
   }

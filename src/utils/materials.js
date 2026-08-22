@@ -35,10 +35,9 @@ function getSunrayTexture() {
 // with a per-group physical treatment layered on top — anisotropy for
 // brushed-metal case/strap, clearcoat for the sapphire crystal, a sunray
 // roughness map for the dial. Explicit property copying (rather than
-// material.clone()-then-mutate-type, which can't change class) so this is
-// safe to call independently from both WatchModel (the shared, live-tweened
-// instance) and ModelGallery (its own permanently-colored clones) with no
-// ordering dependency between the two.
+// material.clone()-then-mutate-type, which can't change class) keeps this
+// safe to call from WatchModel's own setup effect without any ordering
+// hazard around when the glTF import's materials become upgradeable.
 export function upgradeMaterial(material) {
   const phys = new THREE.MeshPhysicalMaterial({
     name: material.name,
@@ -57,13 +56,20 @@ export function upgradeMaterial(material) {
     phys.anisotropyRotation = Math.PI / 2;
     phys.clearcoat = 0.35;
     phys.clearcoatRoughness = 0.15;
+    // Boosts how strongly the studio HDRI's reflections read on the metal —
+    // the default 1.0 under this rig's environment intensity was landing
+    // closer to a flat brushed-plastic look than polished steel/gold.
+    phys.envMapIntensity = 1.6;
   } else if (material.name === "Crystal") {
     phys.clearcoat = 1;
     phys.clearcoatRoughness = 0.04;
     phys.reflectivity = 0.9;
+    phys.ior = 1.5; // sapphire crystal's real-world index of refraction
+    phys.envMapIntensity = 1.3;
   } else if (material.name === "DialBlack") {
     phys.roughnessMap = getSunrayTexture();
     phys.roughness = Math.max(material.roughness, 0.32);
+    phys.envMapIntensity = 1.2;
   }
 
   return phys;

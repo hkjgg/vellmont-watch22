@@ -1,16 +1,36 @@
+import { useRef } from "react";
+import gsap from "gsap";
+import * as THREE from "three";
 import { useMaterial } from "../context/MaterialContext";
-import { useScene } from "../context/SceneContext";
 import { lighten, darken } from "../utils/color";
 
 export default function Lineup() {
-  const { presets, materialIndex } = useMaterial();
-  const { galleryFocusFnRef } = useScene();
+  const { presets, materialIndex, setMaterialIndex } = useMaterial();
+  const accentRef = useRef(null);
 
-  // Same camera-focus/dim behavior as clicking a watch directly in the 3D
-  // array below — ModelGallery registers this function once it mounts,
-  // and it already calls setMaterialIndex internally.
+  // Tints the giant background typography toward the selected variation's
+  // own swatch — a dedicated CSS var (rather than the existing --gold/
+  // --gold-bright) so this never fights the light/dark theme scrub that
+  // already drives those continuously.
   const selectModel = (i) => {
-    galleryFocusFnRef.current?.(i);
+    const swatch = new THREE.Color(presets[i].swatch);
+    const proxy = { t: 0 };
+    const root = document.documentElement;
+    const fromVar = getComputedStyle(root).getPropertyValue("--model-accent").trim();
+    const from = fromVar ? new THREE.Color(fromVar) : swatch;
+    if (accentRef.current) accentRef.current.kill();
+    accentRef.current = gsap.to(proxy, {
+      t: 1,
+      duration: 0.9,
+      ease: "power2.inOut",
+      onUpdate: () => {
+        const r = Math.round((from.r + (swatch.r - from.r) * proxy.t) * 255);
+        const g = Math.round((from.g + (swatch.g - from.g) * proxy.t) * 255);
+        const b = Math.round((from.b + (swatch.b - from.b) * proxy.t) * 255);
+        root.style.setProperty("--model-accent", `rgb(${r}, ${g}, ${b})`);
+      },
+    });
+    setMaterialIndex(i);
   };
 
   return (
@@ -30,24 +50,25 @@ export default function Lineup() {
       <div className="lineup__intro reveal">
         <p className="eyebrow">10 — Select Model</p>
         <h2>Choose Your Meridian.</h2>
+        <p>Four finishes, one silhouette — select a variation to see it live on the piece above.</p>
       </div>
 
-      <div className="lineup__grid reveal-stagger" data-cursor-zone="select">
+      <div className="lineup__capsules reveal-stagger" data-cursor-zone="select" role="group" aria-label="Watch material variation">
         {presets.map((preset, i) => (
           <button
             key={preset.id}
             type="button"
-            className={`lineup__card reveal-item ${i === materialIndex ? "lineup__card--active" : ""}`}
+            className={`lineup__capsule reveal-item ${i === materialIndex ? "is-active" : ""}`}
             onClick={() => selectModel(i)}
+            aria-pressed={i === materialIndex}
           >
             <span
-              className="lineup__swatch"
+              className="lineup__capsule-swatch"
               style={{
                 background: `radial-gradient(circle at 35% 30%, ${lighten(preset.swatch)}, ${preset.swatch} 55%, ${darken(preset.swatch)} 100%)`,
               }}
             />
-            <span className="lineup__card-name">{preset.name}</span>
-            <span className="lineup__card-cta">View in 3D →</span>
+            <span className="lineup__capsule-name">{preset.name}</span>
           </button>
         ))}
       </div>

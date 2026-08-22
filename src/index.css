@@ -158,8 +158,11 @@ p { line-height: 1.75; color: var(--ink-dim); font-size: 1.02rem; }
   font-weight: 800;
   font-size: clamp(5rem, 22vw, 17rem);
   letter-spacing: 0.01em;
-  color: var(--ink);
-  opacity: 0.16;
+  /* Fixed metallic silver rather than the theme's --ink var — reads as an
+     intentional engraved-metal backdrop and keeps consistent contrast
+     against the warm cream Hero background regardless of theme scrub. */
+  color: #aeb4bd;
+  opacity: 0.32;
   white-space: nowrap;
   animation: heroSlideUp 1.1s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
 }
@@ -733,25 +736,32 @@ p { line-height: 1.75; color: var(--ink-dim); font-size: 1.02rem; }
   top: 0;
   height: 100vh;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  text-align: center;
-  gap: 3.5rem;
   padding: 6rem clamp(1.25rem, 6vw, 5rem);
 }
-.gift-atelier__intro h2 { font-size: clamp(2rem, 4.5vw, 3rem); margin: 0.4rem 0 0.75rem; }
-.gift-atelier__intro p { max-width: 34rem; margin: 0 auto; }
-
-.gift-atelier__grid {
+/* Two-column: text stays left-aligned in its own half, the right half is a
+   reserved, empty spacer — the 3D presentation box (setupUnboxing) animates
+   into that space instead of sitting centered behind the text, which was
+   the actual "overlapping" complaint. */
+.gift-atelier__layout {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 3rem;
   width: 100%;
-  max-width: 62rem;
+  max-width: 72rem;
   margin: 0 auto;
+  align-items: center;
+}
+.gift-atelier__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
   text-align: left;
 }
+.gift-atelier__intro h2 { font-size: clamp(2rem, 4.5vw, 3rem); margin: 0.4rem 0 0.75rem; }
+.gift-atelier__intro p { max-width: 30rem; margin: 0; }
+
+.gift-atelier__list { display: flex; flex-direction: column; gap: 1.5rem; }
 .gift-card { border-top: 1px solid var(--line); padding-top: 1.25rem; }
 .gift-card__index { font-family: var(--font-mega); font-weight: 700; color: var(--gold); font-size: 0.85rem; }
 .gift-card h3 { font-family: var(--font-display); font-size: 1.2rem; font-style: italic; margin: 0.5rem 0 0.6rem; }
@@ -1052,10 +1062,12 @@ p { line-height: 1.75; color: var(--ink-dim); font-size: 1.02rem; }
   opacity: 0.14;
   z-index: -1;
 }
-/* Giant watermark behind the gallery array, echoing Hero's background type
-   but scoped to this section (Hero's own is position:fixed and only ever
-   visible pre-scroll) — this is what the 3D watch array reads as sitting
-   "in front of" per the Model Selection brief. */
+/* Giant watermark behind the swatch capsules, echoing Hero's background
+   type but scoped to this section (Hero's own is position:fixed and only
+   ever visible pre-scroll). Tinted live via --model-accent (set by
+   Lineup.jsx on each capsule click) rather than the theme's flat --ink, so
+   selecting a variation visibly shifts this typography toward that
+   variation's own tone. */
 .lineup__bg-type {
   position: absolute;
   inset: 0;
@@ -1071,51 +1083,53 @@ p { line-height: 1.75; color: var(--ink-dim); font-size: 1.02rem; }
   font-weight: 800;
   font-size: clamp(4rem, 16vw, 13rem);
   letter-spacing: 0.02em;
-  color: var(--ink);
-  opacity: 0.06;
+  color: var(--model-accent, var(--ink));
+  opacity: 0.16;
   white-space: nowrap;
+  transition: color 0.3s ease;
 }
 .lineup__intro { position: relative; z-index: 1; }
 .lineup__intro h2 { font-size: clamp(2rem, 4.5vw, 3rem); margin-top: 0.5rem; }
-.lineup__grid {
+.lineup__intro p { max-width: 30rem; margin: 0.75rem auto 0; }
+
+/* Swatch-only selection — no per-variation 3D preview here (that lives on
+   the single shared watch, visible behind this section per setupLineupReturn
+   in useSectionAnimations.js); clicking a capsule updates that shared
+   model's material live, so this is deliberately a compact picker rather
+   than a card grid. */
+.lineup__capsules {
   position: relative;
   z-index: 1;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1.5rem;
-  width: 100%;
-  max-width: 68rem;
-}
-.lineup__card {
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 1rem;
+}
+.lineup__capsule {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   background: var(--bg-alt);
   border: 1px solid var(--line);
-  border-radius: 4px;
-  padding: 2.25rem 1.25rem 1.75rem;
+  border-radius: 999px;
+  padding: 0.6rem 1.6rem 0.6rem 0.6rem;
   cursor: pointer;
-  transition: border-color 0.3s ease, transform 0.3s ease;
+  transition: border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
 }
-.lineup__card:hover { transform: translateY(-6px); border-color: var(--gold); }
-.lineup__card--active { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
-.lineup__swatch {
-  width: 84px;
-  height: 84px;
+.lineup__capsule:hover { transform: translateY(-3px); border-color: var(--gold); }
+.lineup__capsule.is-active { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
+.lineup__capsule-swatch {
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.35);
+  flex-shrink: 0;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.35);
 }
-.lineup__card-name {
+.lineup__capsule-name {
   font-family: var(--font-display);
-  font-size: 1.15rem;
+  font-size: 1rem;
   font-style: italic;
-}
-.lineup__card-cta {
-  font-size: 0.7rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--ink-dim);
+  white-space: nowrap;
 }
 
 /* ---------- footer ---------- */
@@ -1149,10 +1163,10 @@ p { line-height: 1.75; color: var(--ink-dim); font-size: 1.02rem; }
 
 /* ---------- responsive ---------- */
 @media (max-width: 960px) {
-  .lineup__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .personalize__grid { grid-template-columns: 1fr; }
   .personalize__preview { order: -1; }
-  .gift-atelier__grid,
+  .gift-atelier__layout { grid-template-columns: 1fr; }
+  .gift-atelier__stage-spacer { display: none; }
   .services__grid,
   .boutique__list { grid-template-columns: 1fr; max-width: 28rem; }
   .specs__list { grid-template-columns: 1fr; max-width: 28rem; }
@@ -1172,7 +1186,6 @@ p { line-height: 1.75; color: var(--ink-dim); font-size: 1.02rem; }
   .modal__row { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
-  .lineup__grid { grid-template-columns: 1fr; }
   .swap-control { width: 96px; height: 96px; }
   .material-picker { gap: 0.6rem; padding: 0.55rem 0.85rem 0.55rem 0.7rem; }
   .material-picker__name { display: none; }

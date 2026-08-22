@@ -52,16 +52,6 @@ export function SceneProvider({ children }) {
   const boxGroupRef = useRef(null);
   const boxLidRef = useRef(null);
 
-  // Model Selection gallery (Lineup section): outer group scales in/out
-  // opposite the main watch, instanceRefs holds each of the 4 permanently-
-  // colored clones keyed by preset id for click-to-focus.
-  const galleryGroupRef = useRef(null);
-  const galleryInstanceRefs = useRef({});
-  // Imperative focus-on-index function, set by ModelGallery once mounted —
-  // lets the DOM card buttons in Lineup.jsx trigger the exact same
-  // camera-focus/dim behavior as clicking a watch directly in 3D.
-  const galleryFocusFnRef = useRef(null);
-
   // DOM label elements for the exploded-assembly section, keyed by layer name,
   // and a flag so the per-frame projection loop only runs while that section is in view.
   const assemblyLabelRefs = useRef({});
@@ -128,9 +118,6 @@ export function SceneProvider({ children }) {
       crystalGlareRef,
       boxGroupRef,
       boxLidRef,
-      galleryGroupRef,
-      galleryInstanceRefs,
-      galleryFocusFnRef,
       assemblyLabelRefs,
       assemblyActiveRef,
       assemblyExplodeRef,
