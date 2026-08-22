@@ -21,6 +21,12 @@ export function SceneProvider({ children }) {
   // preset, leather is a fixed appearance) but still faded during explode.
   const strapMaterialsRef = useRef([]);
   const crystalMaterialRef = useRef(null);
+  // The dial disc's own material — separate from the case, since an x-ray
+  // "see through to the gears" cutaway needs the dial (which sits directly
+  // in front of the movement stack) to go translucent too, not just the
+  // outer case shell. Hands/markers are separate opaque meshes parented to
+  // this same node and stay solid on top, like an open-worked dial.
+  const dialMaterialRef = useRef(null);
   // Bracelet link + clasp nodes: { name -> { node, rest: {x,y,z} } }. Rest
   // position is captured at load time so the assembly explode can fan each
   // one outward on X/Z (relative to its own resting spot) and cleanly
@@ -58,6 +64,12 @@ export function SceneProvider({ children }) {
   // materials render nearly black/blown-out until this is ready, so frame
   // counting for canvasPainted should only start once this is true.
   const [environmentReady, setEnvironmentReady] = useState(false);
+  // Whether the depth-of-field post-processing pass is currently mounted —
+  // scoped to near Mechanical Heart/Macro Zoom (see PostFXGate) rather than
+  // running for the whole page, since an always-on EffectComposer pass is
+  // expensive enough on slow/software-rendered GPUs to noticeably delay
+  // canvasPainted itself.
+  const [dofEnabled, setDofEnabled] = useState(false);
 
   const onReady = (cb) => {
     if (readyRef.current) cb();
@@ -80,6 +92,7 @@ export function SceneProvider({ children }) {
       caseMaterialsRef,
       strapMaterialsRef,
       crystalMaterialRef,
+      dialMaterialRef,
       strapNodesRef,
       crystalGlareRef,
       boxGroupRef,
@@ -93,14 +106,16 @@ export function SceneProvider({ children }) {
       setCanvasPainted,
       environmentReady,
       setEnvironmentReady,
+      dofEnabled,
+      setDofEnabled,
       onReady,
       markReady,
       MOVEMENT_LAYER_NAMES,
     }),
     // Refs/functions are stable identities from useRef/closures over them;
-    // only these two booleans ever actually change.
+    // only these booleans ever actually change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [canvasPainted, environmentReady]
+    [canvasPainted, environmentReady, dofEnabled]
   );
 
   return <SceneContext.Provider value={value}>{children}</SceneContext.Provider>;

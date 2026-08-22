@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import Lenis from "lenis";
 import { useScene } from "../context/SceneContext";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -24,6 +25,19 @@ function strapNodeIndex(name) {
   if (name.startsWith("Clasp")) return 11;
   const m = name.match(/_L(\d+)$/);
   return m ? parseInt(m[1], 10) : 0;
+}
+
+// X-ray cutaway: instead of fading the case straight back to fully opaque
+// as the movement reassembles, it settles at a translucent "smoked glass"
+// level and holds there — the internal gears (spun continuously in
+// WatchModel) read as visible, moving machinery through the shell — then
+// resolves to fully solid metal right at the very end, just before the
+// camera/framing hands off into Macro Zoom.
+const XRAY_OPACITY = 0.3;
+function xrayCaseOpacity(reassemble) {
+  if (reassemble < 0.6) return lerp(0, XRAY_OPACITY, reassemble / 0.6);
+  if (reassemble < 0.85) return XRAY_OPACITY;
+  return lerp(XRAY_OPACITY, 1, (reassemble - 0.85) / 0.15);
 }
 
 // Fans every bracelet link and the clasp outward on X/Z (alternating sides,
@@ -98,15 +112,58 @@ export function useSectionAnimations(contentRef) {
     caseMaterialsRef,
     strapMaterialsRef,
     crystalMaterialRef,
+    dialMaterialRef,
     strapNodesRef,
     crystalGlareRef,
     boxGroupRef,
     boxLidRef,
+    setDofEnabled,
     precisionFramingRef,
     assemblyActiveRef,
     assemblyExplodeRef,
     particleEnergyRef,
   } = useScene();
+
+  // Lenis owns scroll physics for the whole app — independent of the 3D
+  // model's load state (onReady below), since scrolling should feel right
+  // from the very first frame on Hero. A cubic ease-out ("weighty" rather
+  // than snappy) plus a duration a touch longer than the ~0.3-0.5s scrub
+  // values used throughout this file gives scroll itself the same
+  // hydraulic, damped-inertia feel as the section transitions.
+  useEffect(() => {
+    const lenis = new Lenis({
+      duration: 1.15,
+      easing: (t) => 1 - Math.pow(1 - t, 4),
+      smoothWheel: true,
+      wheelMultiplier: 1,
+      touchMultiplier: 1.1,
+    });
+    lenis.on("scroll", ScrollTrigger.update);
+
+    const raf = (time) => lenis.raf(time * 1000);
+    gsap.ticker.add(raf);
+    gsap.ticker.lagSmoothing(0);
+
+    // Plain <a href="#id"> nav links would otherwise jump instantly via
+    // native anchor navigation, bypassing Lenis entirely and fighting its
+    // idea of where the scroll actually is — route them through it instead.
+    const handleAnchorClick = (e) => {
+      const link = e.target.closest('a[href^="#"]');
+      if (!link) return;
+      const id = link.getAttribute("href").slice(1);
+      const target = document.getElementById(id);
+      if (!target) return;
+      e.preventDefault();
+      lenis.scrollTo(target, { duration: 1.3 });
+    };
+    document.addEventListener("click", handleAnchorClick);
+
+    return () => {
+      document.removeEventListener("click", handleAnchorClick);
+      gsap.ticker.remove(raf);
+      lenis.destroy();
+    };
+  }, []);
 
   useEffect(() => {
     let ctx;
@@ -118,6 +175,7 @@ export function useSectionAnimations(contentRef) {
 
       ctx = gsap.context(() => {
         setupThemeScrub();
+        setupAmbientGlare();
         setupHeroBgFade();
         setupAssembly(group, camera);
         setupMechanicalHeart(group, camera);
@@ -126,6 +184,7 @@ export function useSectionAnimations(contentRef) {
         setupUnboxing(group, camera);
         setupLineupReturn(group, camera);
         setupGenericReveals();
+        setupDofGate();
       });
     });
 
@@ -179,6 +238,49 @@ export function useSectionAnimations(contentRef) {
           break;
         }
         applyTheme(amount);
+      },
+    });
+  }
+
+  // Sapphire-crystal glare that reacts to scroll everywhere on the page —
+  // a diagonal highlight that brightens with scroll speed and dims when
+  // idle, reading as light catching the anti-reflective coating as the
+  // watch moves. Paused during precisely-choreographed sections: Macro
+  // Zoom drives this same mesh with its own dedicated dial-stage sweep
+  // (see setupMacroZoom), and the others simply don't want a sweep
+  // competing with their framing.
+  function setupAmbientGlare() {
+    let lastY = window.scrollY;
+    let lastT = performance.now();
+
+    ScrollTrigger.create({
+      trigger: document.body,
+      start: "top top",
+      end: "bottom bottom",
+      scrub: true,
+      onUpdate: () => {
+        const glare = crystalGlareRef.current;
+        if (!glare) return;
+        const now = performance.now();
+        const y = window.scrollY;
+        const dt = Math.max(now - lastT, 1);
+        const speedNorm = clamp01((Math.abs(y - lastY) / dt) * 12);
+        lastY = y;
+        lastT = now;
+
+        if (precisionFramingRef.current) {
+          // Macro Zoom drives this same mesh right after this callback
+          // runs (see setupMacroZoom) and will overwrite this 0 with its
+          // own value; everywhere else precision framing is active, this
+          // keeps the sweep from sitting stuck mid-highlight.
+          glare.material.opacity = 0;
+          return;
+        }
+
+        const t = (y / 340) % 1;
+        glare.position.x = lerp(-0.75, 0.75, t);
+        glare.position.y = lerp(-0.6, 0.6, Math.abs(t * 2 - 1));
+        glare.material.opacity = speedNorm * 0.55;
       },
     });
   }
@@ -256,21 +358,34 @@ export function useSectionAnimations(contentRef) {
         if (p >= 0.6) {
           const reassemble = clamp01((p - 0.6) / 0.4);
           assemblyExplodeRef.current = 1 - reassemble;
+          // The movement nests back together on its own, faster timeline
+          // than the case/dial opacity curve below — it needs to be fully
+          // assembled *before* the shell finishes its translucent "hold"
+          // (see xrayCaseOpacity), otherwise the x-ray cutaway is looking
+          // through a hazy dial at parts that are still mid-explode rather
+          // than at a coherent, nested mechanism.
+          const nestPhase = clamp01(reassemble / 0.6);
           const nodes = movementNodesRef.current;
           const restZ = movementRestZRef.current;
           Object.entries(EXPLODE_OFFSET).forEach(([name, offset]) => {
             const node = nodes[name];
             if (!node) return;
-            node.position.z = (restZ[name] ?? 0) + offset * (1 - reassemble);
+            node.position.z = (restZ[name] ?? 0) + offset * (1 - nestPhase);
           });
-          applyStrapExplode(strapNodesRef, 1 - reassemble);
+          applyStrapExplode(strapNodesRef, 1 - nestPhase);
+          const caseOpacity = xrayCaseOpacity(reassemble);
           caseMaterialsRef.current.forEach((mat) => {
-            mat.opacity = reassemble;
+            mat.opacity = caseOpacity;
           });
           strapMaterialsRef.current.forEach((mat) => {
-            mat.opacity = reassemble;
+            mat.opacity = caseOpacity;
           });
           if (crystalMaterialRef.current) crystalMaterialRef.current.opacity = reassemble * 0.35;
+          // The dial disc sits directly in front of the movement stack, so
+          // it has to go even more translucent than the case for the
+          // gears to actually read through it — hands/markers are separate
+          // opaque meshes and stay crisp on top.
+          if (dialMaterialRef.current) dialMaterialRef.current.opacity = caseOpacity * 0.6;
           camera.fov = lerp(23, MACRO_STAGES[0].fov, easeInOut(reassemble));
           camera.position.z = lerp(5.8, MACRO_STAGES[0].camZ, easeInOut(reassemble));
           group.rotation.y = lerp(-Math.PI * 0.46, MACRO_STAGES[0].rotY, easeInOut(reassemble));
@@ -311,6 +426,7 @@ export function useSectionAnimations(contentRef) {
           mat.opacity = 1;
         });
         if (crystalMaterialRef.current) crystalMaterialRef.current.opacity = 0.35;
+        if (dialMaterialRef.current) dialMaterialRef.current.opacity = 1;
 
         const stageFloat = clamp01(self.progress) * MACRO_STAGES.length;
         const idx = Math.min(Math.floor(stageFloat), MACRO_STAGES.length - 1);
@@ -463,6 +579,22 @@ export function useSectionAnimations(contentRef) {
 
     document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
     document.querySelectorAll(".reveal-stagger .reveal-item").forEach((el) => io.observe(el));
+  }
+
+  // The depth-of-field EffectComposer pass (see PostFX.jsx) is expensive
+  // enough on slow/software-rendered GPUs to noticeably delay first paint,
+  // so it only mounts near where it's actually used — Mechanical Heart's
+  // zoom-in tail through the end of Macro Zoom — rather than for the whole
+  // page. rootMargin extends the trigger zone before #macro's own top edge
+  // so it's already mounted by the time that zoom-in reaches its tightest.
+  function setupDofGate() {
+    const target = document.getElementById("macro");
+    if (!target) return;
+    const io = new IntersectionObserver(
+      (entries) => entries.forEach((entry) => setDofEnabled(entry.isIntersecting)),
+      { rootMargin: "35% 0px 15% 0px", threshold: 0 }
+    );
+    io.observe(target);
   }
 }
 

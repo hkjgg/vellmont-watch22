@@ -19,9 +19,10 @@
   box-sizing: border-box;
 }
 
-html {
-  scroll-behavior: smooth;
-}
+/* Native "scroll-behavior: smooth" is deliberately absent — Lenis (see
+   useSectionAnimations.js) owns all scroll easing now. The two fighting
+   over the same scroll position is what produced the earlier documented
+   ScrollTrigger timing bugs, so this stays off permanently. */
 
 body {
   margin: 0;
@@ -30,6 +31,18 @@ body {
   font-family: var(--font-body);
   font-weight: 300;
   overflow-x: hidden;
+}
+
+/* Lenis boilerplate: keep native scroll-behavior disabled while it's
+   driving, and let the page height/overflow behave normally otherwise. */
+html.lenis, html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
 }
 
 img, svg { display: block; max-width: 100%; }

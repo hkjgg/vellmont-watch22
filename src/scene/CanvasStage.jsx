@@ -7,10 +7,11 @@ import AssemblyLabelSync from "./AssemblyLabelSync";
 import StudioEnvironment from "./StudioEnvironment";
 import PaintSignal from "./PaintSignal";
 import PresentationBox from "./PresentationBox";
+import PostFX from "./PostFX";
 import { useScene } from "../context/SceneContext";
 
 export default function CanvasStage() {
-  const { cameraRef } = useScene();
+  const { cameraRef, dofEnabled } = useScene();
 
   return (
     <div className="canvas-stage" id="canvasStage" aria-hidden="true">
@@ -36,6 +37,7 @@ export default function CanvasStage() {
         </Suspense>
         <PresentationBox />
         <AssemblyLabelSync />
+        {dofEnabled && <PostFX />}
       </Canvas>
     </div>
   );

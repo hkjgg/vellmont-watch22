@@ -67,6 +67,7 @@ export default function WatchModel() {
     caseMaterialsRef,
     strapMaterialsRef,
     crystalMaterialRef,
+    dialMaterialRef,
     strapNodesRef,
     crystalGlareRef,
     precisionFramingRef,
@@ -93,6 +94,7 @@ export default function WatchModel() {
     const strapMaterials = new Set();
     const strapNodes = {};
     let crystalMaterial = null;
+    let dialMaterial = null;
 
     scene.traverse((child) => {
       if (!child.isMesh) return;
@@ -111,11 +113,19 @@ export default function WatchModel() {
         child.material.transparent = true;
         crystalMaterial = child.material;
       }
+      // "Dial" names both the disc mesh and the parent node for its hands/
+      // markers (separate, always-opaque meshes) — only the disc itself
+      // should ever go translucent, so this checks the exact node name.
+      if (child.name === "Dial" && child.material) {
+        child.material.transparent = true;
+        dialMaterial = child.material;
+      }
     });
 
     caseMaterialsRef.current = Array.from(caseMaterials);
     strapMaterialsRef.current = Array.from(strapMaterials);
     crystalMaterialRef.current = crystalMaterial;
+    dialMaterialRef.current = dialMaterial;
     strapNodesRef.current = strapNodes;
 
     const nodes = {};
@@ -181,6 +191,15 @@ export default function WatchModel() {
 
     s.vz += ((targetZ - g.rotation.z) * SPRING_STIFFNESS - s.vz * SPRING_DAMPING) * dt;
     g.rotation.z += s.vz * dt;
+
+    // The rotor, balance-wheel cage, and mainspring barrel always spin —
+    // harmless wherever they're hidden inside an opaque case, and exactly
+    // what sells the "alive machinery" read during the Mechanical Heart
+    // x-ray cutaway, where the case turns translucent around them.
+    const nodes = movementNodesRef.current;
+    if (nodes.Weight) nodes.Weight.rotation.z += dt * 0.6;
+    if (nodes.Tourbillon) nodes.Tourbillon.rotation.z += dt * 1.4;
+    if (nodes.Barrel) nodes.Barrel.rotation.z += dt * 0.35;
   });
 
   return (
