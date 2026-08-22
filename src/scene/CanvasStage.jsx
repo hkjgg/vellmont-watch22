@@ -7,6 +7,7 @@ import AssemblyLabelSync from "./AssemblyLabelSync";
 import StudioEnvironment from "./StudioEnvironment";
 import PaintSignal from "./PaintSignal";
 import PresentationBox from "./PresentationBox";
+import ModelGallery from "./ModelGallery";
 import PostFX from "./PostFX";
 import { useScene } from "../context/SceneContext";
 
@@ -25,6 +26,7 @@ export default function CanvasStage() {
         <StudioEnvironment />
         <Suspense fallback={null}>
           <WatchModel />
+          <ModelGallery />
           <PaintSignal />
           <ContactShadows
             position={[0, -1.35, 0]}

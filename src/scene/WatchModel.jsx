@@ -5,6 +5,7 @@ import * as THREE from "three";
 import gsap from "gsap";
 import { useScene } from "../context/SceneContext";
 import { useMaterial, LEATHER_PRESET } from "../context/MaterialContext";
+import { upgradeMaterial } from "../utils/materials";
 import Particles from "./Particles";
 
 const MODEL_URL = "/models/watch.glb";
@@ -55,6 +56,7 @@ const CASE_ONLY_NAMES = ["Case", "Bezel", "Crown", "Lug_0", "Lug_1", "Lug_2", "L
 // ClaspTop, StrapBottom_L0..L10, ClaspBottom) so it can be exploded
 // individually — matched by prefix rather than an exact list.
 const isStrapNode = (name) => name.startsWith("StrapTop") || name.startsWith("StrapBottom") || name.startsWith("Clasp");
+const UPGRADE_NAMES = new Set(["CaseMetal", "StrapMetal", "Crystal", "DialBlack"]);
 
 // Tweens every property a watch variation preset can specify — color,
 // metalness, roughness, and emissive/emissiveIntensity (only the Stealth
@@ -119,11 +121,26 @@ export default function WatchModel() {
     const strapNodes = {};
     let crystalMaterial = null;
     let dialMaterial = null;
+    // Several meshes share one glTF material by reference (e.g. all 22
+    // bracelet links share "StrapMetal") — upgrade each shared name once
+    // and reuse the same instance, rather than minting a separate
+    // MeshPhysicalMaterial per mesh.
+    const upgradedByName = new Map();
 
     scene.traverse((child) => {
       if (!child.isMesh) return;
       child.castShadow = true;
       child.receiveShadow = true;
+      // Case/strap/crystal/dial get the physical-material upgrade (brushed
+      // anisotropy, sapphire clearcoat, sunray dial) — hands/markers stay
+      // simple painted-metal accents. Reassigning before the group-specific
+      // logic below means everything downstream (transparent flag, ref
+      // collection, name matching) already sees the upgraded material.
+      if (child.material && UPGRADE_NAMES.has(child.material.name)) {
+        const name = child.material.name;
+        if (!upgradedByName.has(name)) upgradedByName.set(name, upgradeMaterial(child.material));
+        child.material = upgradedByName.get(name);
+      }
       const strapNode = isStrapNode(child.name);
       if ((CASE_ONLY_NAMES.includes(child.name) || strapNode) && child.material) {
         child.material.transparent = true;

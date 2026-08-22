@@ -1,12 +1,16 @@
 import { useMaterial } from "../context/MaterialContext";
+import { useScene } from "../context/SceneContext";
 import { lighten, darken } from "../utils/color";
 
 export default function Lineup() {
-  const { presets, materialIndex, setMaterialIndex } = useMaterial();
+  const { presets, materialIndex } = useMaterial();
+  const { galleryFocusFnRef } = useScene();
 
+  // Same camera-focus/dim behavior as clicking a watch directly in the 3D
+  // array below — ModelGallery registers this function once it mounts,
+  // and it already calls setMaterialIndex internally.
   const selectModel = (i) => {
-    setMaterialIndex(i);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    galleryFocusFnRef.current?.(i);
   };
 
   return (
@@ -20,6 +24,9 @@ export default function Lineup() {
         playsInline
         aria-hidden="true"
       />
+      <div className="lineup__bg-type" aria-hidden="true">
+        <span>VELLMONT</span>
+      </div>
       <div className="lineup__intro reveal">
         <p className="eyebrow">05 — Select Model</p>
         <h2>Choose Your Meridian.</h2>

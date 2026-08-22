@@ -22,7 +22,9 @@ export default function AssemblyLabelSync() {
       worldPos.project(camera);
       const x = (worldPos.x * 0.5 + 0.5) * size.width;
       const y = (-worldPos.y * 0.5 + 0.5) * size.height;
-      label.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
+      // Bottom-center anchor: the dot (last child) lands exactly on the
+      // part's projected position; text and leader float upward from it.
+      label.style.transform = `translate(-50%, -100%) translate(${x}px, ${y}px)`;
     });
   });
 

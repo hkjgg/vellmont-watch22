@@ -117,6 +117,7 @@ export function useSectionAnimations(contentRef) {
     crystalGlareRef,
     boxGroupRef,
     boxLidRef,
+    galleryGroupRef,
     setDofEnabled,
     precisionFramingRef,
     assemblyActiveRef,
@@ -274,6 +275,7 @@ export function useSectionAnimations(contentRef) {
         setupInfoSectionsTransition(group, camera);
         setupUnboxing(group, camera);
         setupLineupReturn(group, camera);
+        setupModelGallery(group, camera);
         setupGenericReveals();
         setupDofGate();
       });
@@ -645,6 +647,36 @@ export function useSectionAnimations(contentRef) {
         camera.fov = lerp(from.fov, 28, p);
         camera.updateProjectionMatrix();
         if (canvasEl) canvasEl.style.opacity = String(lerp(0.14, 1, p));
+      },
+    });
+  }
+
+  // Model Selection gallery: picks up exactly where setupLineupReturn ends
+  // (camera at z:7/fov:28, main watch at rest) and swaps it out for the
+  // four-wide gallery array — the single shared watch shrinks away as the
+  // gallery scales in, and the camera pulls back/widens to frame all four.
+  // camera.position.x is deliberately left untouched here on every tick
+  // (unlike the other properties) so it doesn't fight ModelGallery's own
+  // click-to-focus pan; onLeave/onLeaveBack instead reset it once, only
+  // when scrolling fully out of this section either direction.
+  function setupModelGallery(group, camera) {
+    const gallery = galleryGroupRef.current;
+    if (!gallery) return;
+
+    ScrollTrigger.create({
+      trigger: "#lineup",
+      start: "top 20%",
+      end: "bottom bottom",
+      scrub: 0.4,
+      onLeave: () => gsap.to(camera.position, { x: 0, duration: 0.6, ease: "power2.out" }),
+      onLeaveBack: () => gsap.to(camera.position, { x: 0, duration: 0.6, ease: "power2.out" }),
+      onUpdate: (self) => {
+        const p = easeInOut(self.progress);
+        group.scale.setScalar(lerp(1, 0.001, p));
+        gallery.scale.setScalar(lerp(0.001, 1, p));
+        camera.position.z = lerp(7, 9, p);
+        camera.fov = lerp(28, 34, p);
+        camera.updateProjectionMatrix();
       },
     });
   }
