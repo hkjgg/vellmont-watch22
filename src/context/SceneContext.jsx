@@ -27,6 +27,12 @@ export function SceneProvider({ children }) {
   // outer case shell. Hands/markers are separate opaque meshes parented to
   // this same node and stay solid on top, like an open-worked dial.
   const dialMaterialRef = useRef(null);
+  // Hands (hour/minute) and accent (markers + second hand + center pin) —
+  // the other two material groups a watch variation preset drives, matched
+  // by glTF material name ("MarkerWhite"/"GoldAccent") rather than mesh
+  // name lists, since both are shared across several meshes.
+  const handMaterialsRef = useRef([]);
+  const accentMaterialsRef = useRef([]);
   // Bracelet link + clasp nodes: { name -> { node, rest: {x,y,z} } }. Rest
   // position is captured at load time so the assembly explode can fan each
   // one outward on X/Z (relative to its own resting spot) and cleanly
@@ -93,6 +99,8 @@ export function SceneProvider({ children }) {
       strapMaterialsRef,
       crystalMaterialRef,
       dialMaterialRef,
+      handMaterialsRef,
+      accentMaterialsRef,
       strapNodesRef,
       crystalGlareRef,
       boxGroupRef,

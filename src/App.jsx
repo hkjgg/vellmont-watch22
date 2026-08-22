@@ -16,6 +16,8 @@ import ServicesRaw from "./sections/Services";
 import BoutiqueLocatorRaw from "./sections/BoutiqueLocator";
 import LineupRaw from "./sections/Lineup";
 import FooterRaw from "./sections/Footer";
+import MaterialPickerRaw from "./components/MaterialPicker";
+import CinematicTitleRaw from "./components/CinematicTitle";
 
 // None of these take props, so a parent (AppContent) re-render — triggered
 // by unrelated context state elsewhere in the tree (e.g. the loading-signal
@@ -38,6 +40,8 @@ const Services = memo(ServicesRaw);
 const BoutiqueLocator = memo(BoutiqueLocatorRaw);
 const Lineup = memo(LineupRaw);
 const Footer = memo(FooterRaw);
+const MaterialPicker = memo(MaterialPickerRaw);
+const CinematicTitle = memo(CinematicTitleRaw);
 
 function AppContent() {
   const contentRef = useRef(null);
@@ -49,6 +53,7 @@ function AppContent() {
       <HeroBgType />
       <CanvasStage />
       <Navbar />
+      <CinematicTitle />
       <main ref={contentRef} className="content">
         <Hero />
         <Assembly />
@@ -61,6 +66,7 @@ function AppContent() {
         <Lineup />
       </main>
       <Footer />
+      <MaterialPicker />
     </>
   );
 }

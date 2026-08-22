@@ -1,4 +1,5 @@
 import { useMaterial } from "../context/MaterialContext";
+import { lighten, darken } from "../utils/color";
 
 export default function Lineup() {
   const { presets, materialIndex, setMaterialIndex } = useMaterial();
@@ -27,7 +28,7 @@ export default function Lineup() {
       <div className="lineup__grid reveal-stagger">
         {presets.map((preset, i) => (
           <button
-            key={preset.name}
+            key={preset.id}
             type="button"
             className={`lineup__card reveal-item ${i === materialIndex ? "lineup__card--active" : ""}`}
             onClick={() => selectModel(i)}
@@ -35,7 +36,7 @@ export default function Lineup() {
             <span
               className="lineup__swatch"
               style={{
-                background: `radial-gradient(circle at 35% 30%, ${lighten(preset.color)}, ${preset.color} 55%, ${darken(preset.color)} 100%)`,
+                background: `radial-gradient(circle at 35% 30%, ${lighten(preset.swatch)}, ${preset.swatch} 55%, ${darken(preset.swatch)} 100%)`,
               }}
             />
             <span className="lineup__card-name">{preset.name}</span>
@@ -45,21 +46,4 @@ export default function Lineup() {
       </div>
     </section>
   );
-}
-
-function lighten(hex) {
-  return adjust(hex, 60);
-}
-function darken(hex) {
-  return adjust(hex, -60);
-}
-function adjust(hex, amt) {
-  const num = parseInt(hex.slice(1), 16);
-  const r = clamp((num >> 16) + amt);
-  const g = clamp(((num >> 8) & 0xff) + amt);
-  const b = clamp((num & 0xff) + amt);
-  return `rgb(${r}, ${g}, ${b})`;
-}
-function clamp(v) {
-  return Math.max(0, Math.min(255, v));
 }

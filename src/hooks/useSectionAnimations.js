@@ -165,6 +165,97 @@ export function useSectionAnimations(contentRef) {
     };
   }, []);
 
+  // Cinematic brand title — independent of the 3D model's load state (like
+  // Lenis above), since it's pure DOM/CSS and should be animating from
+  // first paint. Large and centered on Hero, it docks precisely onto the
+  // (visually transparent) navbar logo's live position as that section
+  // scrolls past, then keeps a subtle reactive scale for the rest of the
+  // page: it swells back up a touch whenever the canvas itself has faded
+  // toward the informational sections' ambient state, reading as the brand
+  // mark reclaiming presence exactly when the watch isn't dominating.
+  useEffect(() => {
+    const title = document.getElementById("cinematicTitle");
+    const logoAnchor = document.getElementById("navbarLogo");
+    if (!title || !logoAnchor) return;
+
+    const state = { heroX: 0, heroY: 0, heroScale: 2.3, dockX: 0, dockY: 0, dockProgress: 0, reactiveScale: 1 };
+
+    const apply = () => {
+      const p = state.dockProgress;
+      const x = lerp(state.heroX, state.dockX, p);
+      const y = lerp(state.heroY, state.dockY, p);
+      const baseScale = lerp(state.heroScale, 1, p);
+      title.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${baseScale * state.reactiveScale})`;
+    };
+
+    const measure = () => {
+      title.style.transform = "translate3d(0px, 0px, 0) scale(1)";
+      const w = title.offsetWidth;
+      const h = title.offsetHeight;
+      state.heroX = window.innerWidth / 2 - (w * state.heroScale) / 2;
+      state.heroY = window.innerHeight * 0.4 - (h * state.heroScale) / 2;
+      const rect = logoAnchor.getBoundingClientRect();
+      state.dockX = rect.left;
+      state.dockY = rect.top;
+      apply();
+    };
+
+    measure();
+    window.addEventListener("resize", measure);
+
+    // .navbar--scrolled (toggled past scrollY 40px) shrinks the navbar's
+    // padding, which moves the logo a few px — re-measure once, after that
+    // CSS transition settles, so the docked position stays pixel-accurate.
+    // This crossing happens very early in Hero's scroll (well before
+    // dockProgress is large enough for a few px to be visible), so there's
+    // no perceptible correction snap.
+    let wasScrolled = window.scrollY > 40;
+    const handleScrollThreshold = () => {
+      const isScrolled = window.scrollY > 40;
+      if (isScrolled === wasScrolled) return;
+      wasScrolled = isScrolled;
+      // React's own state-update/re-render (Navbar.jsx toggles this same
+      // class) adds latency before the CSS padding transition even starts,
+      // so the full 400ms transition can take closer to 700-900ms
+      // wall-clock to actually settle — measured empirically, a tighter
+      // delay sampled the padding mid-transition and locked in a wrong dock
+      // position.
+      setTimeout(measure, 750);
+    };
+    window.addEventListener("scroll", handleScrollThreshold, { passive: true });
+
+    const dockTrigger = ScrollTrigger.create({
+      trigger: "#hero",
+      start: "top top",
+      end: "bottom top",
+      scrub: true,
+      onUpdate: (self) => {
+        state.dockProgress = easeInOut(clamp01(self.progress));
+        apply();
+      },
+    });
+
+    const reactiveTrigger = ScrollTrigger.create({
+      trigger: document.body,
+      start: "top top",
+      end: "bottom bottom",
+      scrub: true,
+      onUpdate: () => {
+        const canvasEl = document.getElementById("canvasStage");
+        const canvasOpacity = canvasEl ? parseFloat(canvasEl.style.opacity || "1") : 1;
+        state.reactiveScale = lerp(1, 1.12, 1 - clamp01(canvasOpacity));
+        apply();
+      },
+    });
+
+    return () => {
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("scroll", handleScrollThreshold);
+      dockTrigger.kill();
+      reactiveTrigger.kill();
+    };
+  }, []);
+
   useEffect(() => {
     let ctx;
 

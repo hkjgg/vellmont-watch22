@@ -20,7 +20,11 @@ export default function Navbar() {
 
   return (
     <header className={`navbar ${scrolled ? "navbar--scrolled" : ""}`}>
-      <a href="#hero" className="navbar__logo">
+      {/* Visually transparent — CinematicTitle renders the actual visible
+          wordmark and docks precisely over this element once scrolled past
+          Hero. This stays as the real, accessible click target and screen
+          reader label. */}
+      <a href="#hero" id="navbarLogo" className="navbar__logo">
         VELLMONT
       </a>
       <nav className={`navbar__links ${open ? "navbar__links--open" : ""}`}>

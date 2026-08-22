@@ -56,6 +56,26 @@ const CASE_ONLY_NAMES = ["Case", "Bezel", "Crown", "Lug_0", "Lug_1", "Lug_2", "L
 // individually — matched by prefix rather than an exact list.
 const isStrapNode = (name) => name.startsWith("StrapTop") || name.startsWith("StrapBottom") || name.startsWith("Clasp");
 
+// Tweens every property a watch variation preset can specify — color,
+// metalness, roughness, and emissive/emissiveIntensity (only the Stealth
+// Titanium preset's hands/accent groups actually glow, but every preset
+// defines these fields so this never has to special-case which groups do).
+function tweenMaterialGroup(materials, target, duration = 0.9) {
+  const targetColor = new THREE.Color(target.color);
+  const targetEmissive = new THREE.Color(target.emissive);
+  materials.forEach((mat) => {
+    gsap.to(mat.color, { r: targetColor.r, g: targetColor.g, b: targetColor.b, duration, ease: "power2.inOut" });
+    gsap.to(mat.emissive, { r: targetEmissive.r, g: targetEmissive.g, b: targetEmissive.b, duration, ease: "power2.inOut" });
+    gsap.to(mat, {
+      metalness: target.metalness,
+      roughness: target.roughness,
+      emissiveIntensity: target.emissiveIntensity,
+      duration,
+      ease: "power2.inOut",
+    });
+  });
+}
+
 export default function WatchModel() {
   const { scene } = useGLTF(MODEL_URL);
   const {
@@ -68,6 +88,8 @@ export default function WatchModel() {
     strapMaterialsRef,
     crystalMaterialRef,
     dialMaterialRef,
+    handMaterialsRef,
+    accentMaterialsRef,
     strapNodesRef,
     crystalGlareRef,
     precisionFramingRef,
@@ -92,6 +114,8 @@ export default function WatchModel() {
   useEffect(() => {
     const caseMaterials = new Set();
     const strapMaterials = new Set();
+    const handMaterials = new Set();
+    const accentMaterials = new Set();
     const strapNodes = {};
     let crystalMaterial = null;
     let dialMaterial = null;
@@ -120,12 +144,19 @@ export default function WatchModel() {
         child.material.transparent = true;
         dialMaterial = child.material;
       }
+      // Hands and accents are matched by their shared glTF material name
+      // (build_watch_glb.py's "MarkerWhite"/"GoldAccent") rather than a
+      // mesh-name list, since each is reused across several meshes.
+      if (child.material?.name === "MarkerWhite") handMaterials.add(child.material);
+      if (child.material?.name === "GoldAccent") accentMaterials.add(child.material);
     });
 
     caseMaterialsRef.current = Array.from(caseMaterials);
     strapMaterialsRef.current = Array.from(strapMaterials);
     crystalMaterialRef.current = crystalMaterial;
     dialMaterialRef.current = dialMaterial;
+    handMaterialsRef.current = Array.from(handMaterials);
+    accentMaterialsRef.current = Array.from(accentMaterials);
     strapNodesRef.current = strapNodes;
 
     const nodes = {};
@@ -144,26 +175,22 @@ export default function WatchModel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scene]);
 
-  // Tween the shared case material(s) to the active preset whenever it changes.
+  // Tween all four material groups (case, dial, hands, accent) to the
+  // active variation whenever it changes.
   useEffect(() => {
     const preset = presets[materialIndex];
-    const targetColor = new THREE.Color(preset.color);
-    caseMaterialsRef.current.forEach((mat) => {
-      gsap.to(mat.color, { r: targetColor.r, g: targetColor.g, b: targetColor.b, duration: 0.9, ease: "power2.inOut" });
-      gsap.to(mat, { metalness: preset.metalness, roughness: preset.roughness, duration: 0.9, ease: "power2.inOut" });
-    });
+    tweenMaterialGroup(caseMaterialsRef.current, preset.case);
+    if (dialMaterialRef.current) tweenMaterialGroup([dialMaterialRef.current], preset.dial);
+    tweenMaterialGroup(handMaterialsRef.current, preset.hands);
+    tweenMaterialGroup(accentMaterialsRef.current, preset.accent);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [materialIndex]);
 
-  // Strap follows the case preset in "steel" mode, or a fixed leather look
-  // in "leather" mode — independent material, same tween pattern.
+  // Strap follows the case group in "steel" mode, or a fixed leather look
+  // in "leather" mode — independent material, same tween helper.
   useEffect(() => {
-    const preset = strapMode === "leather" ? LEATHER_PRESET : presets[materialIndex];
-    const targetColor = new THREE.Color(preset.color);
-    strapMaterialsRef.current.forEach((mat) => {
-      gsap.to(mat.color, { r: targetColor.r, g: targetColor.g, b: targetColor.b, duration: 0.9, ease: "power2.inOut" });
-      gsap.to(mat, { metalness: preset.metalness, roughness: preset.roughness, duration: 0.9, ease: "power2.inOut" });
-    });
+    const target = strapMode === "leather" ? LEATHER_PRESET : presets[materialIndex].case;
+    tweenMaterialGroup(strapMaterialsRef.current, target);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [materialIndex, strapMode]);
 
