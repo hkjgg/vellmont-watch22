@@ -52,7 +52,7 @@ export function upgradeMaterial(material) {
     emissiveIntensity: material.emissiveIntensity ?? 0,
   });
 
-  if (material.name === "CaseMetal" || material.name === "StrapMetal") {
+  if (material.name === "CaseMetal" || material.name === "StrapMetal" || material.name === "CaseBackMetal") {
     phys.anisotropy = 0.55;
     phys.anisotropyRotation = Math.PI / 2;
     phys.clearcoat = 0.15;

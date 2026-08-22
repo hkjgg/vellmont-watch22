@@ -162,12 +162,10 @@ export default function ModelGallery() {
             e.stopPropagation();
             focusOn(i);
           }}
-          onPointerOver={() => {
-            document.body.style.cursor = "pointer";
-          }}
-          onPointerOut={() => {
-            document.body.style.cursor = "auto";
-          }}
+          // No native-cursor toggling here — CustomCursor.jsx owns the
+          // pointer look site-wide (see index.css's `cursor: none`); setting
+          // body.style.cursor inline here would win over that stylesheet
+          // rule and un-hide the native arrow while hovering a watch.
         />
       ))}
     </group>

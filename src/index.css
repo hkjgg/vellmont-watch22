@@ -48,6 +48,19 @@ html.lenis, html.lenis body {
 img, svg { display: block; max-width: 100%; }
 a { color: inherit; text-decoration: none; }
 
+/* Custom cursor replaces the native pointer site-wide (see CustomCursor.jsx)
+   — scoped to devices that actually have a precise pointer, so touch/mobile
+   keeps its normal tap behavior untouched. Text inputs keep a native caret
+   cursor since the follower has no way to represent "click to place caret". */
+@media (hover: hover) and (pointer: fine) {
+  body {
+    cursor: none;
+  }
+  input, textarea, select, [contenteditable] {
+    cursor: auto;
+  }
+}
+
 h1, h2, h3 { font-family: var(--font-display); font-weight: 500; margin: 0; color: var(--ink); }
 p { line-height: 1.75; color: var(--ink-dim); font-size: 1.02rem; }
 
@@ -67,6 +80,66 @@ p { line-height: 1.75; color: var(--ink-dim); font-size: 1.02rem; }
   pointer-events: none;
 }
 .canvas-stage canvas { display: block; width: 100% !important; height: 100% !important; }
+
+/* Custom follower cursor — a small dot by default, growing into a labeled
+   ring over the two special hit areas (Hero's swap zone, Lineup's gallery)
+   and a smaller neutral ring over any generic clickable. Position is set
+   imperatively every frame by CustomCursor.jsx, not through React state, so
+   this only ever needs a transform + the data-zone attribute toggled. */
+.custom-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 10px;
+  height: 10px;
+  margin: 0;
+  border-radius: 50%;
+  border: 1px solid var(--gold-graphic);
+  background: var(--gold-graphic);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform;
+  transition: width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), height 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+    background 0.25s ease, opacity 0.2s ease;
+}
+.custom-cursor[data-zone="hover"] {
+  width: 34px;
+  height: 34px;
+  background: transparent;
+}
+.custom-cursor[data-zone="swap"],
+.custom-cursor[data-zone="select"] {
+  width: 96px;
+  height: 96px;
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  backdrop-filter: blur(6px);
+}
+.custom-cursor__text {
+  font-family: var(--font-mega);
+  font-weight: 700;
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-align: center;
+  line-height: 1.2;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.custom-cursor[data-zone="swap"] .custom-cursor__text,
+.custom-cursor[data-zone="select"] .custom-cursor__text {
+  opacity: 1;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .custom-cursor {
+    display: none;
+  }
+}
 
 /* Giant background typography behind the hero watch */
 .hero-bg-type {
@@ -265,6 +338,17 @@ p { line-height: 1.75; color: var(--ink-dim); font-size: 1.02rem; }
 }
 .swap-control:hover { transform: scale(1.06); }
 .swap-control:active { cursor: grabbing; }
+/* On precise-pointer devices the custom cursor (CustomCursor.jsx) already
+   grows into a labeled "SWAP" ring right over this button, so its own ring
+   graphic would just double up as a second overlapping circle — hide it
+   there and keep only the (still fully functional) hit area. Touch devices
+   never get the custom cursor, so this stays visible for them. */
+@media (hover: hover) and (pointer: fine) {
+  .swap-control__ring,
+  .swap-control__label {
+    opacity: 0;
+  }
+}
 .swap-control__ring {
   position: absolute;
   inset: 0;
@@ -389,7 +473,7 @@ p { line-height: 1.75; color: var(--ink-dim); font-size: 1.02rem; }
   pointer-events: none;
 }
 /* Museum-placard layout: the dot pins the exact part position (the JS
-   transform anchors the group's bottom-center there), text floats above
+   transform anchors the group's top-center there), text floats below
    connected by a leader line — this is what keeps labels legible instead
    of six overlapping tags stacked on top of each other once parts are
    still close together early in the explode. */
@@ -704,6 +788,80 @@ p { line-height: 1.75; color: var(--ink-dim); font-size: 1.02rem; }
 .gift-card__index { font-family: var(--font-mega); font-weight: 700; color: var(--gold); font-size: 0.85rem; }
 .gift-card h3 { font-family: var(--font-display); font-size: 1.2rem; font-style: italic; margin: 0.5rem 0 0.6rem; }
 .gift-card p { font-size: 0.9rem; margin: 0; }
+
+/* ============ SPECIFICATIONS ============ */
+.specs { flex-direction: column; text-align: center; gap: 3rem; }
+.specs__intro h2 { font-size: clamp(2rem, 4.5vw, 3rem); margin: 0.4rem 0 0; }
+
+/* A fanned deck of small angled cards, each holding just a monogram + label
+   — the "cascade" reads as a quick glimpse of every spec before the list
+   below resolves the same four into full detail. --tilt is set per-card
+   inline (JSX) so the fan angle stays data-driven rather than a fixed
+   nth-child list. */
+.specs__cascade {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.specs__card {
+  width: 8.5rem;
+  aspect-ratio: 3 / 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  background: var(--bg-alt);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  transform: rotate(var(--tilt, 0deg));
+  transition: transform 0.35s ease, border-color 0.3s ease;
+}
+.specs__card:hover { transform: rotate(0deg) translateY(-6px); border-color: var(--gold); }
+.specs__card-mono {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 2.6rem;
+  color: var(--gold-graphic);
+}
+.specs__card-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.specs__list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem 3rem;
+  width: 100%;
+  max-width: 46rem;
+  margin: 0 auto;
+  text-align: left;
+}
+.specs__row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+.specs__row dt {
+  font-family: var(--font-mega);
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.specs__row dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: var(--ink);
+}
 
 /* ============ SERVICES ============ */
 .services { flex-direction: column; text-align: center; gap: 2.5rem; }
@@ -1029,6 +1187,7 @@ p { line-height: 1.75; color: var(--ink-dim); font-size: 1.02rem; }
   .gift-atelier__grid,
   .services__grid,
   .boutique__list { grid-template-columns: 1fr; max-width: 28rem; }
+  .specs__list { grid-template-columns: 1fr; max-width: 28rem; }
 }
 @media (max-width: 860px) {
   .navbar__links {

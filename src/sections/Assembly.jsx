@@ -29,9 +29,9 @@ export default function Assembly() {
               assemblyLabelRefs.current[layer.name] = el;
             }}
           >
-            <span className="assembly__label-text">{layer.name}</span>
-            <span className="assembly__label-leader" />
             <span className="assembly__label-dot" />
+            <span className="assembly__label-leader" />
+            <span className="assembly__label-text">{layer.name}</span>
           </div>
         ))}
       </div>

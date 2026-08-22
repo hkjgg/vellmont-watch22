@@ -68,6 +68,13 @@ export function SceneProvider({ children }) {
   const assemblyActiveRef = useRef(false);
   const assemblyExplodeRef = useRef(0);
 
+  // Custom cursor's current hover context: null (default dot), "swap" (over
+  // the Hero swap zone), "select" (over the Lineup gallery), or "hover"
+  // (any generic clickable). Written by CustomCursor's own rAF loop via
+  // elementFromPoint rather than scattering pointerenter/leave handlers
+  // across every interactive component.
+  const cursorZoneRef = useRef(null);
+
   // True while the scroll position sits inside a section whose 3D framing
   // is exactly choreographed (assembly, mechanical heart, macro zoom,
   // unboxing) — the idle 360° drift in WatchModel pauses during these so it
@@ -127,6 +134,7 @@ export function SceneProvider({ children }) {
       assemblyLabelRefs,
       assemblyActiveRef,
       assemblyExplodeRef,
+      cursorZoneRef,
       precisionFramingRef,
       particleEnergyRef,
       canvasPainted,

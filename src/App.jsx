@@ -10,6 +10,7 @@ import HeroRaw from "./sections/Hero";
 import AssemblyRaw from "./sections/Assembly";
 import MechanicalHeartRaw from "./sections/MechanicalHeart";
 import MacroZoomRaw from "./sections/MacroZoom";
+import SpecificationsRaw from "./sections/Specifications";
 import PersonalizeRaw from "./sections/Personalize";
 import GiftAtelierRaw from "./sections/GiftAtelier";
 import ServicesRaw from "./sections/Services";
@@ -18,6 +19,7 @@ import LineupRaw from "./sections/Lineup";
 import FooterRaw from "./sections/Footer";
 import MaterialPickerRaw from "./components/MaterialPicker";
 import CinematicTitleRaw from "./components/CinematicTitle";
+import CustomCursorRaw from "./components/CustomCursor";
 
 // None of these take props, so a parent (AppContent) re-render — triggered
 // by unrelated context state elsewhere in the tree (e.g. the loading-signal
@@ -34,6 +36,7 @@ const Hero = memo(HeroRaw);
 const Assembly = memo(AssemblyRaw);
 const MechanicalHeart = memo(MechanicalHeartRaw);
 const MacroZoom = memo(MacroZoomRaw);
+const Specifications = memo(SpecificationsRaw);
 const Personalize = memo(PersonalizeRaw);
 const GiftAtelier = memo(GiftAtelierRaw);
 const Services = memo(ServicesRaw);
@@ -42,6 +45,7 @@ const Lineup = memo(LineupRaw);
 const Footer = memo(FooterRaw);
 const MaterialPicker = memo(MaterialPickerRaw);
 const CinematicTitle = memo(CinematicTitleRaw);
+const CustomCursor = memo(CustomCursorRaw);
 
 function AppContent() {
   const contentRef = useRef(null);
@@ -59,6 +63,7 @@ function AppContent() {
         <Assembly />
         <MechanicalHeart />
         <MacroZoom />
+        <Specifications />
         <Personalize />
         <GiftAtelier />
         <Services />
@@ -67,6 +72,7 @@ function AppContent() {
       </main>
       <Footer />
       <MaterialPicker />
+      <CustomCursor />
     </>
   );
 }

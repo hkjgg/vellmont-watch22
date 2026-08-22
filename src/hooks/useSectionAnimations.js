@@ -92,9 +92,17 @@ const DARK_PALETTE = {
 
 const MACRO_STAGES = [
   { rotY: 0.18, camZ: 4.4, fov: 24, groupY: 0.05 },
-  { rotY: -Math.PI * 0.4, camZ: 4.1, fov: 21, groupY: 0 },
+  // Slim Profile: pushed close to a true 90° side-on rotation so the thin
+  // case edge actually reads as a profile rather than a fast pass-through.
+  { rotY: -Math.PI * 0.46, camZ: 4.1, fov: 21, groupY: 0 },
   { rotY: -Math.PI * 0.12, camZ: 4.6, fov: 26, groupY: -1.35 },
 ];
+
+// Bracelet stage (the last macro stage, stageFloat in [2,3]) otherwise holds
+// perfectly still at MACRO_STAGES' final pose — this sweeps the watch left/
+// right in front of the fixed camera during that dwell so the links visibly
+// pan across frame instead of sitting frozen.
+const BRACELET_PAN_X = 0.55;
 
 // Resting camera/group pose used both to settle the watch after Macro Zoom
 // (before the informational sections) and as the starting point for the
@@ -543,6 +551,9 @@ export function useSectionAnimations(contentRef) {
         camera.fov = lerp(a.fov, b.fov, localP);
         camera.updateProjectionMatrix();
 
+        const braceletPhase = clamp01(stageFloat - (MACRO_STAGES.length - 1));
+        group.position.x = braceletPhase > 0 ? lerp(-BRACELET_PAN_X, BRACELET_PAN_X, easeInOut(braceletPhase)) : 0;
+
         backdrops.forEach((el, i) => {
           if (!el) return;
           const dist = Math.abs(stageFloat - (i + 0.5));
@@ -566,17 +577,20 @@ export function useSectionAnimations(contentRef) {
     });
   }
 
-  // Between Macro Zoom and Lineup sit four informational sections
-  // (Personalize, Gift Atelier, Services, Boutique) with no 3D choreography
-  // of their own. Without this, the watch stays frozen at Macro's last,
-  // heavily-zoomed framing — a huge tilted metal surface — behind all of
-  // them. Settle it to a calm ambient pose and fade the canvas down so it
-  // doesn't dominate that reading-focused stretch of the page.
+  // Between Macro Zoom and Lineup sit five informational sections
+  // (Specifications, Personalize, Gift Atelier, Services, Boutique) with no
+  // 3D choreography of their own. Without this, the watch stays frozen at
+  // Macro's last, heavily-zoomed framing — a huge tilted metal surface —
+  // behind all of them. Settle it to a calm ambient pose and fade the canvas
+  // down so it doesn't dominate that reading-focused stretch of the page.
+  // Scoped to #specs (the first of the five) rather than #personalize so the
+  // handoff completes before the reading stretch begins, not partway
+  // through it.
   function setupInfoSectionsTransition(group, camera) {
     const from = MACRO_STAGES[MACRO_STAGES.length - 1];
     const canvasEl = document.getElementById("canvasStage");
     ScrollTrigger.create({
-      trigger: "#personalize",
+      trigger: "#specs",
       start: "top bottom",
       end: "top top",
       scrub: 0.4,

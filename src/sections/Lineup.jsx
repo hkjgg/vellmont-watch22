@@ -28,11 +28,11 @@ export default function Lineup() {
         <span>VELLMONT</span>
       </div>
       <div className="lineup__intro reveal">
-        <p className="eyebrow">05 — Select Model</p>
+        <p className="eyebrow">10 — Select Model</p>
         <h2>Choose Your Meridian.</h2>
       </div>
 
-      <div className="lineup__grid reveal-stagger">
+      <div className="lineup__grid reveal-stagger" data-cursor-zone="select">
         {presets.map((preset, i) => (
           <button
             key={preset.id}

@@ -6,7 +6,7 @@ export default function Hero() {
     <section id="hero" className="section hero-v2">
       <p className="eyebrow hero-v2__eyebrow">Swiss-Inspired · Est. 2011</p>
 
-      <div className="hero-v2__swap-zone">
+      <div className="hero-v2__swap-zone" data-cursor-zone="swap">
         <SwapControl />
         <MaterialLabel className="hero-v2__material-label" />
       </div>
