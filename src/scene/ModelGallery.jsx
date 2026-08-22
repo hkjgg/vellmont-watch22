@@ -10,6 +10,13 @@ import { upgradeMaterial } from "../utils/materials";
 const MODEL_URL = "/models/watch.glb";
 const GALLERY_SPACING = 1.7;
 const GALLERY_SCALE = 0.62;
+// A forward-facing presentation tilt so each gallery watch reads dial-and-
+// bezel-forward rather than edge-on. Set once on the clone itself (below)
+// rather than as a JSX `rotation` prop — the idle-spin useFrame loop owns
+// rotation.y continuously, and a literal `rotation={[x, 0, 0]}` prop would
+// re-apply on every re-render (e.g. whenever the active material index
+// changes) and stomp that accumulated spin back to 0.
+const GALLERY_TILT_X = Math.PI / 6; // 30°
 
 const GROUP_MATCH = {
   CaseMetal: "case",
@@ -31,6 +38,7 @@ const UPGRADE_NAMES = new Set(["CaseMetal", "StrapMetal", "Crystal", "DialBlack"
 // own upgrade effect — both read from the same cached useGLTF() scene.
 function buildInstance(sourceScene, preset) {
   const clone = sourceScene.clone(true);
+  clone.rotation.x = GALLERY_TILT_X;
   const upgradedByName = new Map();
   clone.traverse((child) => {
     if (!child.isMesh || !child.material) return;

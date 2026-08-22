@@ -23,15 +23,6 @@ export default function GiftAtelier() {
           <p>A watch is rarely just for oneself. Every order can become a presentation, from case to seal to delivery.</p>
         </div>
 
-        <div className="gift-atelier__showcase reveal">
-          <div className="wax-seal">
-            <span className="wax-seal__ribbon" />
-            <div className="wax-seal__disc">
-              <span>V</span>
-            </div>
-          </div>
-        </div>
-
         <div className="gift-atelier__grid reveal-stagger">
           {FEATURES.map((f, i) => (
             <div className="gift-card reveal-item" key={f.title}>

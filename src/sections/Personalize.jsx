@@ -32,18 +32,21 @@ function makeEngravingTexture(text) {
   if (text) {
     // The case back only turns to face the camera by rotating the whole
     // watch group 180° around Y (see setupPersonalizeReveal) rather than
-    // flipping the mesh itself, so its texture is now seen from what was
-    // originally its far side — mirrored left-right. Drawing the text with
-    // a horizontal flip here cancels that out so it reads correctly once
-    // the case back is actually facing the viewer.
+    // flipping the mesh itself. Between that Y-axis rotation, the mesh's
+    // own UV parameterization, and CanvasTexture's default flipY, the net
+    // effect the viewer actually sees is a full point rotation of the
+    // texture (verified empirically — a plain horizontal-only mirror left
+    // every glyph upside down), so a matching 180° pre-rotation here is
+    // what cancels it out and makes the text read correctly once the case
+    // back is facing the viewer.
     ctx.save();
     ctx.translate(size / 2, size / 2);
-    ctx.scale(-1, 1);
+    ctx.rotate(Math.PI);
     ctx.fillStyle = "#48484d";
     ctx.font = "600 48px Georgia, 'Times New Roman', serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(text, 0, 4);
+    ctx.fillText(text, 0, 0);
     ctx.restore();
   }
 

@@ -42,8 +42,10 @@ function buildStudioScene() {
   softbox(6, 8, "#fff4e0", 5.5, [6, 3, 5], [0, 0, 0]);
   // Fill light — cooler, dimmer, opposite side.
   softbox(5, 6, "#dce8ff", 2.2, [-6, 0.5, 3], [0, 0, 0]);
-  // Rim light — small, warm gold, behind/above for edge highlights.
-  softbox(3, 3, "#ffcf8a", 6, [-1, 5, -6], [0, 0, 0]);
+  // Rim light — warm gold, behind/above for edge highlights. Sized and
+  // intensified beyond a typical fill so it reads as a bright, punchy edge
+  // on the bezel and bracelet links rather than a subtle accent.
+  softbox(4, 4, "#ffcf8a", 9, [-1, 5, -6], [0, 0, 0]);
   // Low top light — broad soft fill from directly above.
   softbox(7, 7, "#ffffff", 1.6, [0, 7.9, 0], [0, 0, 0]);
 

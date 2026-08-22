@@ -55,8 +55,8 @@ export function upgradeMaterial(material) {
   if (material.name === "CaseMetal" || material.name === "StrapMetal" || material.name === "CaseBackMetal") {
     phys.anisotropy = 0.55;
     phys.anisotropyRotation = Math.PI / 2;
-    phys.clearcoat = 0.15;
-    phys.clearcoatRoughness = 0.25;
+    phys.clearcoat = 0.35;
+    phys.clearcoatRoughness = 0.15;
   } else if (material.name === "Crystal") {
     phys.clearcoat = 1;
     phys.clearcoatRoughness = 0.04;
