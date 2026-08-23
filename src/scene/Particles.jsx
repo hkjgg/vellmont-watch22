@@ -54,10 +54,15 @@ export default function Particles() {
 
   useFrame((state) => {
     const energy = particleEnergyRef.current;
-    material.opacity = energy;
+    const t = state.clock.elapsedTime;
+    // A faint, always-on "breathing" baseline so the canvas never reads as
+    // totally static outside Mechanical Heart's x-ray scene, layered under
+    // whatever that scene drives via particleEnergyRef — cheap (opacity
+    // pulse only, no per-particle swirl) so it costs nothing elsewhere.
+    const ambientBreath = 0.05 + Math.sin(t * 0.35) * 0.025;
+    material.opacity = Math.max(ambientBreath, energy);
     if (energy < 0.01 || !pointsRef.current) return;
 
-    const t = state.clock.elapsedTime;
     const posAttr = pointsRef.current.geometry.attributes.position;
     const amp = 0.35 * energy;
 

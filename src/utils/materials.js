@@ -66,6 +66,21 @@ export function upgradeMaterial(material) {
     phys.reflectivity = 0.9;
     phys.ior = 1.5; // sapphire crystal's real-world index of refraction
     phys.envMapIntensity = 1.3;
+    // NOTE: real `transmission` was tried here for physical glass see-
+    // through, but it doesn't compose with this material's existing
+    // `transparent: true` + animated `.opacity` (used elsewhere to fade the
+    // crystal during the Macro Zoom dial reveal and Mechanical Heart's
+    // x-ray) — three.js runs transmissive objects through a separate
+    // render-to-texture pass that conflicts with standard alpha blending,
+    // and stacking both rendered as a muddy opaque disc over the dial
+    // instead of clear glass. Clearcoat + reflectivity above already carry
+    // the "glass on top of the dial" read without that conflict.
+    // A thin-film iridescence layer for the faint blue/violet sheen a real
+    // anti-reflective coating catches at a glancing angle — additive on
+    // top of clearcoat, no conflict with the opacity animations.
+    phys.iridescence = 0.3;
+    phys.iridescenceIOR = 1.3;
+    phys.iridescenceThicknessRange = [100, 400];
   } else if (material.name === "DialBlack") {
     phys.roughnessMap = getSunrayTexture();
     phys.roughness = Math.max(material.roughness, 0.32);

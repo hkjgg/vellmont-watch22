@@ -1,18 +1,25 @@
 :root {
-  --bg: #f6f4ef;
-  --bg-alt: #edeae1;
-  --ink: #16140f;
-  --ink-dim: #6e6759;
-  --gold: #9c7434;
-  --gold-bright: #b98d47;
-  --gold-graphic: #c9a668;
-  --line: rgba(22, 20, 15, 0.14);
+  /* Ultra-luxury Swiss horology palette — deep obsidian/graphite with
+     champagne gold and platinum-silver accents. The two THEME_ZONES
+     palettes in useSectionAnimations.js (LIGHT_PALETTE/DARK_PALETTE —
+     "graphite"/"obsidian" in spirit now, kept under their original names
+     since the crossfade mechanism itself is unchanged) scrub between this
+     graphite tone and a deeper obsidian one as the page scrolls; these are
+     just the static initial values matching Hero's own zone. */
+  --bg: #1f2833;
+  --bg-alt: #28323e;
+  --ink: #edf0f4;
+  --ink-dim: #9aa5b1;
+  --gold: #d4af37;
+  --gold-bright: #e8c97a;
+  --gold-graphic: #d4af37;
+  --line: rgba(237, 240, 244, 0.14);
   --canvas-fade: 1;
 
   --font-display: "Cormorant Garamond", "Times New Roman", serif;
   --font-body: "Jost", "Helvetica Neue", Arial, sans-serif;
   --font-mega: "Big Shoulders Display", "Arial Narrow", sans-serif;
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 * {
@@ -26,7 +33,10 @@
 
 body {
   margin: 0;
-  background: var(--bg);
+  /* Subtle depth rather than a flat fill — the radial pulls a touch of
+     --bg-alt in from the top so each section reads as metallic graphite
+     rather than a single dead-flat dark color. */
+  background: radial-gradient(120% 100% at 50% 0%, var(--bg-alt) 0%, var(--bg) 55%);
   color: var(--ink);
   font-family: var(--font-body);
   font-weight: 300;
@@ -222,8 +232,10 @@ p { line-height: 1.75; color: var(--ink-dim); font-size: 1.02rem; }
   border-bottom: 1px solid transparent;
 }
 .navbar--scrolled {
-  background: color-mix(in srgb, var(--bg) 80%, transparent);
-  backdrop-filter: blur(14px);
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
   padding-top: 1.1rem; padding-bottom: 1.1rem; border-color: var(--line);
 }
 /* Visually transparent — see the comment in Navbar.jsx. Sized identically
@@ -252,10 +264,25 @@ p { line-height: 1.75; color: var(--ink-dim); font-size: 1.02rem; }
 }
 .navbar__links { display: flex; gap: 2.2rem; }
 .navbar__links a {
+  position: relative;
   font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase;
   color: var(--ink-dim); transition: color 0.3s ease;
+  padding-bottom: 0.2rem;
+}
+.navbar__links a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 1px;
+  background: var(--gold-bright);
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .navbar__links a:hover { color: var(--gold-bright); }
+.navbar__links a:hover::after { transform: scaleX(1); transform-origin: left; }
 .navbar__toggle { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 8px; }
 .navbar__toggle span { width: 22px; height: 1px; background: var(--ink); }
 
@@ -414,10 +441,11 @@ p { line-height: 1.75; color: var(--ink-dim); font-size: 1.02rem; }
   gap: 1rem;
   padding: 0.7rem 1.1rem 0.7rem 0.9rem;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--bg) 62%, transparent);
+  background: color-mix(in srgb, var(--bg) 55%, transparent);
   border: 1px solid var(--line);
-  backdrop-filter: blur(14px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
   transition: background 0.4s ease, border-color 0.4s ease;
 }
 .material-picker__swatches {
@@ -761,8 +789,18 @@ p { line-height: 1.75; color: var(--ink-dim); font-size: 1.02rem; }
 .gift-atelier__intro h2 { font-size: clamp(2rem, 4.5vw, 3rem); margin: 0.4rem 0 0.75rem; }
 .gift-atelier__intro p { max-width: 30rem; margin: 0; }
 
-.gift-atelier__list { display: flex; flex-direction: column; gap: 1.5rem; }
-.gift-card { border-top: 1px solid var(--line); padding-top: 1.25rem; }
+.gift-atelier__list { display: flex; flex-direction: column; gap: 1.25rem; }
+.gift-card {
+  background: color-mix(in srgb, var(--bg-alt) 45%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent);
+  border-radius: 6px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2);
+  transition: border-color 0.3s ease, transform 0.3s ease;
+}
+.gift-card:hover { transform: translateX(4px); border-color: var(--gold); }
 .gift-card__index { font-family: var(--font-mega); font-weight: 700; color: var(--gold); font-size: 0.85rem; }
 .gift-card h3 { font-family: var(--font-display); font-size: 1.2rem; font-style: italic; margin: 0.5rem 0 0.6rem; }
 .gift-card p { font-size: 0.9rem; margin: 0; }
@@ -790,13 +828,16 @@ p { line-height: 1.75; color: var(--ink-dim); font-size: 1.02rem; }
   align-items: center;
   justify-content: center;
   gap: 0.6rem;
-  background: var(--bg-alt);
-  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg-alt) 55%, transparent);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
   border-radius: 6px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
   transform: rotate(var(--tilt, 0deg));
-  transition: transform 0.35s ease, border-color 0.3s ease;
+  transition: transform 0.35s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
-.specs__card:hover { transform: rotate(0deg) translateY(-6px); border-color: var(--gold); }
+.specs__card:hover { transform: rotate(0deg) translateY(-6px); border-color: var(--gold); box-shadow: 0 14px 36px rgba(0, 0, 0, 0.32); }
 .specs__card-mono {
   font-family: var(--font-display);
   font-style: italic;
@@ -853,14 +894,17 @@ p { line-height: 1.75; color: var(--ink-dim); font-size: 1.02rem; }
   margin: 0 auto;
 }
 .service-card {
-  background: var(--bg-alt);
-  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg-alt) 55%, transparent);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
   border-radius: 4px;
   padding: 2.25rem 1.75rem;
   text-align: left;
-  transition: border-color 0.3s ease, transform 0.3s ease;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  transition: border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
 }
-.service-card:hover { transform: translateY(-4px); border-color: var(--gold); }
+.service-card:hover { transform: translateY(-4px); border-color: var(--gold); box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35); }
 .service-card__icon { width: 40px; height: 40px; color: var(--gold); margin-bottom: 1.25rem; }
 .service-card__icon svg { width: 100%; height: 100%; }
 .service-card h3 { font-family: var(--font-display); font-size: 1.25rem; font-style: italic; margin: 0 0 0.6rem; }
@@ -1109,11 +1153,14 @@ p { line-height: 1.75; color: var(--ink-dim); font-size: 1.02rem; }
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background: var(--bg-alt);
-  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg-alt) 55%, transparent);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
   border-radius: 999px;
   padding: 0.6rem 1.6rem 0.6rem 0.6rem;
   cursor: pointer;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
   transition: border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
 }
 .lineup__capsule:hover { transform: translateY(-3px); border-color: var(--gold); }

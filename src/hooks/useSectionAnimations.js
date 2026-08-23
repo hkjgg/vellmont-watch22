@@ -71,23 +71,27 @@ const THEME_ZONES = [
   { id: "lineup", dark: false },
 ];
 
+// Ultra-luxury Swiss horology palette — both zones are dark now (a lighter
+// "graphite" and a deeper "obsidian"), scrubbed between exactly as the
+// former light/dark palettes were; only the values changed; matches
+// index.css's :root comment for the same two tones.
 const LIGHT_PALETTE = {
-  bg: [246, 244, 239],
-  bgAlt: [237, 234, 225],
-  ink: [22, 20, 15],
-  inkDim: [110, 103, 89],
-  gold: [156, 116, 52],
-  goldBright: [185, 141, 71],
-  line: [22, 20, 15],
+  bg: [31, 40, 51], // #1F2833 graphite
+  bgAlt: [40, 50, 62],
+  ink: [237, 240, 244],
+  inkDim: [154, 165, 177],
+  gold: [212, 175, 55], // #D4AF37 champagne gold
+  goldBright: [232, 201, 122],
+  line: [237, 240, 244],
 };
 const DARK_PALETTE = {
-  bg: [10, 10, 11],
-  bgAlt: [17, 17, 19],
-  ink: [242, 236, 225],
-  inkDim: [168, 162, 154],
-  gold: [201, 166, 104],
-  goldBright: [232, 202, 160],
-  line: [242, 236, 225],
+  bg: [11, 12, 16], // #0B0C10 obsidian
+  bgAlt: [20, 22, 28],
+  ink: [245, 247, 250],
+  inkDim: [140, 147, 160],
+  gold: [212, 175, 55],
+  goldBright: [240, 217, 140],
+  line: [245, 247, 250],
 };
 
 const MACRO_STAGES = [
